@@ -1,4 +1,13 @@
-FROM ubuntu:latest
-LABEL authors="slavaruswarrior"
+FROM golang:alpine
 
-ENTRYPOINT ["top", "-b"]
+WORKDIR /go/src/postgis-vs-elasticsearch-performance
+
+COPY . .
+
+RUN go mod download
+
+RUN go build -o myapp cmd/main.go
+
+EXPOSE 8080
+
+CMD ["./myapp"]

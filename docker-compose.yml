@@ -10,7 +10,17 @@ services:
     ports:
       - "5432:5432"
     volumes:
-      - ./data:/var/lib/postgresql/data
+      - ./dbpg/data:/var/lib/postgresql/data
+  elasticsearch:
+    image: docker.elastic.co/elasticsearch/elasticsearch:8.8.0
+    environment:
+      - discovery.type=single-node
+    platform: linux/arm64
+    volumes:
+      - ./elasticsearch/data:/usr/share/elasticsearch/data
+    ports:
+      - "9200:9200"
+      - "9300:9300"
   app:
     build:
       context: ./app
@@ -18,3 +28,4 @@ services:
       - "8080:8080"
     depends_on:
       - dbpg
+      - elasticsearch
