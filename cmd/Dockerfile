@@ -2,7 +2,7 @@ FROM golang:alpine
 
 WORKDIR /go/src/postgis-vs-elasticsearch-performance
 
-COPY . .
+COPY ../app .
 
 RUN go mod download
 
