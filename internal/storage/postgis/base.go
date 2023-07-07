@@ -62,6 +62,22 @@ func (s *Storage) Init(ctx context.Context) error {
 	return nil
 }
 
+func (s *Storage) Drop(ctx context.Context) error {
+	q := `
+		DROP TABLE IF EXISTS moscow_region;
+	`
+
+	_, err := s.db.Exec(
+		ctx,
+		q,
+	)
+	if err != nil {
+		return fmt.Errorf("can't drop tables %w", err)
+	}
+
+	return nil
+}
+
 func (s *Storage) AddPoint(ctx context.Context, p storage.Point) error {
 
 	q := `
@@ -76,4 +92,43 @@ func (s *Storage) AddPoint(ctx context.Context, p storage.Point) error {
 	}
 
 	return nil
+}
+
+func (s *Storage) DeletePoint(ctx context.Context, p storage.Point) error {
+
+	q := `
+		DELETE FROM moscow_region
+		WHERE geom = ST_SetSRID(ST_MakePoint($1, $2), 4326)
+	`
+
+	_, err := s.db.Query(ctx, q, p.Longitude, p.Latitude)
+
+	if err != nil {
+		return fmt.Errorf("can't delete a point %e\n", err)
+	}
+
+	return nil
+}
+
+func (s *Storage) IsPoint(ctx context.Context, p storage.Point) (bool, error) {
+
+	q := `
+		SELECT count(*) AS count
+		FROM moscow_region
+		WHERE geom = ST_SetSRID(ST_MakePoint($1, $2), 4326)
+	`
+
+	row, err := s.db.Query(ctx, q, p.Longitude, p.Latitude)
+
+	defer row.Close()
+
+	if err != nil {
+		return false, fmt.Errorf("can't delete a point %e\n", err)
+	}
+
+	if row.Next() != false {
+		return true, nil
+	}
+
+	return false, nil
 }
