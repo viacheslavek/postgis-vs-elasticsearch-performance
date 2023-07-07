@@ -5,21 +5,16 @@ import (
 	"fmt"
 	"github.com/VyacheslavIsWorkingNow/postgis-vs-elasticsearch-performance/internal/storage"
 	"github.com/jackc/pgx/v5"
+	"github.com/jackc/pgx/v5/pgxpool"
 	"log"
 )
 
 type Storage struct {
-	db *pgx.Conn
+	db   *pgx.Conn
+	pool *pgxpool.Pool
 }
 
 func New() (*Storage, error) {
-	//databaseURL := os.Getenv("DATABASE_URL")
-	//
-	//if databaseURL == "" {
-	//	return nil, fmt.Errorf("space db url\n")
-	//}
-	//
-	//db, err := pgx.Connect(context.Background(), databaseURL)
 
 	db, err := pgx.Connect(context.Background(), "postgres://slava:passwordforgis@localhost:5432/postgresgis")
 
@@ -33,9 +28,19 @@ func New() (*Storage, error) {
 		return nil, fmt.Errorf("QueryRow failed: %w\n", err)
 	}
 
+	config, err := pgxpool.ParseConfig("postgres://slava:passwordforgis@localhost:5432/postgresgis")
+	if err != nil {
+		return nil, fmt.Errorf("can`t parse connection string: %w", err)
+	}
+
+	pool, err := pgxpool.NewWithConfig(context.Background(), config)
+	if err != nil {
+		return nil, fmt.Errorf("can`t create connection pool: %w", err)
+	}
+
 	log.Printf("connect db %s\n", greeting)
 
-	return &Storage{db}, nil
+	return &Storage{db, pool}, nil
 }
 
 func (s *Storage) Close(ctx context.Context) error {
@@ -44,6 +49,7 @@ func (s *Storage) Close(ctx context.Context) error {
 	if err != nil {
 		return fmt.Errorf("can't close connection %e\n", err)
 	}
+	s.pool.Close()
 
 	return nil
 }
@@ -112,6 +118,43 @@ func (s *Storage) AddPoint(ctx context.Context, p storage.Point) error {
 
 	if err != nil {
 		return fmt.Errorf("can't commit transactions %w\n", err)
+	}
+
+	return nil
+}
+
+func (s *Storage) AddPointBatch(ctx context.Context, points []storage.Point) error {
+
+	conn, err := s.pool.Acquire(ctx)
+	if err != nil {
+		return fmt.Errorf("can`t acquire connection from pool: %w\n", err)
+	}
+
+	defer conn.Release()
+
+	batch := &pgx.Batch{}
+
+	q := `
+		INSERT INTO moscow_region (geom) 
+			VALUES (ST_SetSRID(ST_MakePoint($1, $2), 4326))
+	`
+
+	for _, p := range points {
+		batch.Queue(q, p.Longitude, p.Latitude)
+	}
+
+	results := conn.SendBatch(ctx, batch)
+
+	// необязательно, если мы хотим максимальную скорость
+	for i := 0; i < len(points); i++ {
+		_, err = results.Exec()
+		if err != nil {
+			return fmt.Errorf("can't execute batch queure: %w\n", err)
+		}
+	}
+
+	if err = results.Close(); err != nil {
+		return fmt.Errorf("can`t close batch results: %w", err)
 	}
 
 	return nil

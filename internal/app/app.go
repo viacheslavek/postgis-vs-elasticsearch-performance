@@ -23,26 +23,17 @@ func Run(dbPG *postgis.Storage) {
 	// тестовое добавление
 	// потом буду брать из генератора
 
-	err = dbPG.AddPoint(ctx, storage.Point{Latitude: 51.5074, Longitude: -1.1278})
-	if err != nil {
-		log.Printf("can't add to dbPG %e\n", err)
+	points := []storage.Point{
+		{Latitude: 51.5074, Longitude: -1.1278},
+		{Latitude: 51.5199, Longitude: -2.1238},
+		{Latitude: 51.5083, Longitude: -3.1278},
 	}
 
-	fmt.Println("add 1")
+	err = dbPG.AddPointBatch(ctx, points)
 
-	err = dbPG.AddPoint(ctx, storage.Point{Latitude: 51.5199, Longitude: -2.1238})
 	if err != nil {
-		log.Printf("can't add to dbPG %e\n", err)
+		fmt.Println("can`t add batch", err)
 	}
-
-	fmt.Println("add 2")
-
-	err = dbPG.AddPoint(ctx, storage.Point{Latitude: 51.5083, Longitude: -3.1278})
-	if err != nil {
-		log.Printf("can't add to dbPG %e\n", err)
-	}
-
-	fmt.Println("add 3")
 
 	fmt.Println("end")
 
