@@ -1,13 +1,17 @@
 package storage
 
 type Storage interface {
-	AddPoint() error
-	DeletePoint() error
-	GetPoint() error
+	AddPoint(p Point) error
+	//DeletePoint(p Point) error
+	//GetPoint() (Point, error)
 
-	//// и так далее додумать
+	// Основные для поиска
+	// GetInRadius(radius float64) ([]Point, error)
+	// GetInPolygon(polygon []float64) ([]Point, error)
+
 }
 
 type Point struct {
-	// Получше узнать, как представлять точки для добавления
+	Latitude  float64
+	Longitude float64
 }

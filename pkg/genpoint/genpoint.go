@@ -1,3 +1,10 @@
 package genpoint
 
-// пакет с функциями генерации точек
+type getPoint interface {
+	generate(N int) []Point
+}
+
+type Point struct {
+	x int
+	y int
+}
