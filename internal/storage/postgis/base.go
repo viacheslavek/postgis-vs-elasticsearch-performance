@@ -38,6 +38,16 @@ func New() (*Storage, error) {
 	return &Storage{db}, nil
 }
 
+func (s *Storage) Close(ctx context.Context) error {
+
+	err := s.db.Close(ctx)
+	if err != nil {
+		return fmt.Errorf("can't close connection %e\n", err)
+	}
+
+	return nil
+}
+
 // Перенести это в миграции
 // Можно проверить работоспособность с индексами по точкам и без
 // CREATE INDEX moscow_region_geom_idx ON moscow_region USING GIST (geom);
@@ -80,15 +90,28 @@ func (s *Storage) Drop(ctx context.Context) error {
 
 func (s *Storage) AddPoint(ctx context.Context, p storage.Point) error {
 
+	tx, err := s.db.BeginTx(ctx, pgx.TxOptions{})
+
+	if err != nil {
+		return fmt.Errorf("can't begin transaction: %w\n", err)
+	}
+
 	q := `
 		INSERT INTO moscow_region (geom) 
 			VALUES (ST_SetSRID(ST_MakePoint($1, $2), 4326))
 	`
 
-	_, err := s.db.Query(ctx, q, p.Longitude, p.Latitude)
+	_, err = tx.Exec(ctx, q, p.Longitude, p.Latitude)
 
 	if err != nil {
-		return fmt.Errorf("can't add a point %e\n", err)
+		_ = tx.Rollback(ctx)
+		return fmt.Errorf("can't add a point: %w\n", err)
+	}
+
+	err = tx.Commit(ctx)
+
+	if err != nil {
+		return fmt.Errorf("can't commit transactions %w\n", err)
 	}
 
 	return nil
