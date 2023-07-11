@@ -3,7 +3,7 @@ package postgis
 import (
 	"context"
 	"fmt"
-	"github.com/VyacheslavIsWorkingNow/postgis-vs-elasticsearch-performance/internal/storage"
+	"github.com/VyacheslavIsWorkingNow/postgis-vs-elasticsearch-performance/internal"
 	"github.com/jackc/pgx/v5"
 	"github.com/jackc/pgx/v5/pgxpool"
 	"log"
@@ -94,7 +94,7 @@ func (s *Storage) Drop(ctx context.Context) error {
 	return nil
 }
 
-func (s *Storage) AddPoint(ctx context.Context, p storage.Point) error {
+func (s *Storage) AddPoint(ctx context.Context, p internal.Point) error {
 
 	tx, err := s.db.BeginTx(ctx, pgx.TxOptions{})
 
@@ -123,7 +123,7 @@ func (s *Storage) AddPoint(ctx context.Context, p storage.Point) error {
 	return nil
 }
 
-func (s *Storage) AddPointBatch(ctx context.Context, points []storage.Point) error {
+func (s *Storage) AddPointBatch(ctx context.Context, points []internal.Point) error {
 
 	conn, err := s.pool.Acquire(ctx)
 	if err != nil {
@@ -160,7 +160,7 @@ func (s *Storage) AddPointBatch(ctx context.Context, points []storage.Point) err
 	return nil
 }
 
-func (s *Storage) DeletePoint(ctx context.Context, p storage.Point) error {
+func (s *Storage) DeletePoint(ctx context.Context, p internal.Point) error {
 
 	q := `
 		DELETE FROM moscow_region
@@ -176,7 +176,7 @@ func (s *Storage) DeletePoint(ctx context.Context, p storage.Point) error {
 	return nil
 }
 
-func (s *Storage) IsPoint(ctx context.Context, p storage.Point) (bool, error) {
+func (s *Storage) IsPoint(ctx context.Context, p internal.Point) (bool, error) {
 
 	q := `
 		SELECT count(*) AS count
