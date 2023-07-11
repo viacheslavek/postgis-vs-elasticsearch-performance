@@ -1,7 +1,6 @@
 package genpoint
 
 import (
-	"fmt"
 	"github.com/VyacheslavIsWorkingNow/postgis-vs-elasticsearch-performance/internal"
 	"log"
 	"math"
@@ -28,7 +27,8 @@ func (smg *SimplePointGenerator) GeneratePoints(N int) []internal.Point {
 	radiusX := int(math.Abs(centerMosRegion.Latitude-edgeMosRegion.Latitude) * 10e6)
 	radiusY := int(math.Abs(centerMosRegion.Longitude-edgeMosRegion.Longitude) * 10e6)
 
-	fmt.Println(radiusX, radiusY, "границы ")
+	// TODO: завести set для проверки того, что все точки уникальные -> нужно для
+	// генерации самонепересекающихся многоугольников
 
 	for i := 0; i < N; i++ {
 		points[i] = generatePointInRadius(

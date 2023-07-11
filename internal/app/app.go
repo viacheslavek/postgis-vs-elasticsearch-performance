@@ -23,15 +23,19 @@ func Run(dbPG *postgis.Storage) {
 	// тестовое добавление
 	// потом буду брать из генератора
 
-	generator := genpoint.SimplePointGenerator{}
+	//generator := genpoint.SimplePointGenerator{}
+	//
+	//points := generator.GeneratePoints(5)
+	//
+	//err = dbPG.AddPointBatch(ctx, points)
+	//
+	//if err != nil {
+	//	fmt.Println("can`t add batch", err)
+	//}
 
-	points := generator.GeneratePoints(5)
+	pg := genpoint.PolygonGenerator{}
 
-	err = dbPG.AddPointBatch(ctx, points)
-
-	if err != nil {
-		fmt.Println("can`t add batch", err)
-	}
+	fmt.Println(pg.GeneratePolygon(5))
 
 	fmt.Println("end")
 

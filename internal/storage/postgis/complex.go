@@ -8,6 +8,6 @@ func (s *Storage) GetInRadius(p internal.Point, radius float64) ([]internal.Poin
 	return nil, nil
 }
 
-func (s *Storage) GetInPolygon(polygon []float64) ([]internal.Point, error) {
+func (s *Storage) GetInPolygon(polygon []internal.Point) ([]internal.Point, error) {
 	return nil, nil
 }
