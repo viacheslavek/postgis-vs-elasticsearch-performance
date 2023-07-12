@@ -49,6 +49,8 @@ func (pg *PolygonGenerator) GeneratePolygon(N int) []internal.Point {
 		Distances: getDistances(centre, points),
 	})
 
+	points = append(points, points[0])
+
 	return points
 }
 

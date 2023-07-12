@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 	"github.com/VyacheslavIsWorkingNow/postgis-vs-elasticsearch-performance/internal"
+	"github.com/jackc/pgx/v5"
 	"log"
 	"strconv"
 	"strings"
@@ -28,11 +29,46 @@ func (s *Storage) GetInRadius(ctx context.Context, p internal.Point, radius int)
 		return nil, fmt.Errorf("can't get in radius %w\n", err)
 	}
 
+	return translateRows(rows)
+
+}
+
+func (s *Storage) GetInPolygon(ctx context.Context, polygon []internal.Point) ([]internal.Point, error) {
+
+	// преобразовать многоугольник в формат WKT
+
+	wktPoints := make([]string, len(polygon))
+	for i, p := range polygon {
+		wktPoints[i] = fmt.Sprintf("%f %f", p.Longitude, p.Latitude)
+	}
+	polygonWKT := fmt.Sprintf("POLYGON((%s))", strings.Join(wktPoints, ","))
+
+	q := `
+		SELECT ST_AsText(geom)
+		FROM moscow_region
+		WHERE ST_Within(
+		    geom, 
+		    ST_SetSRID(ST_GeomFromText($1), 4326)
+		)
+	`
+
+	rows, err := s.db.Query(ctx, q, polygonWKT)
+	defer rows.Close()
+
+	if err != nil {
+		return nil, fmt.Errorf("can't querry points in polygon %w\n", err)
+	}
+
+	return translateRows(rows)
+}
+
+func translateRows(rows pgx.Rows) ([]internal.Point, error) {
+
 	nearestPoints := make([]internal.Point, 0)
 
 	for rows.Next() {
 		var geometryData string
-		err = rows.Scan(&geometryData)
+		err := rows.Scan(&geometryData)
 		if err != nil {
 			return nil, fmt.Errorf("can't scan row in nearestPoint %w\n", err)
 		}
@@ -46,25 +82,22 @@ func (s *Storage) GetInRadius(ctx context.Context, p internal.Point, radius int)
 			continue
 		}
 
-		latitude, err := strconv.ParseFloat(coordinates[1], 64)
-		if err != nil {
+		latitude, err1 := strconv.ParseFloat(coordinates[1], 64)
+		if err1 != nil {
 			continue
 		}
-		longitude, err := strconv.ParseFloat(coordinates[0], 64)
-		if err != nil {
+		longitude, err1 := strconv.ParseFloat(coordinates[0], 64)
+		if err1 != nil {
 			continue
 		}
 
 		nearestPoints = append(nearestPoints, internal.Point{Latitude: latitude, Longitude: longitude})
 	}
 
-	if err = rows.Err(); err != nil {
+	if err := rows.Err(); err != nil {
 		return nil, fmt.Errorf("error iterating over rows %w\n", err)
 	}
 
 	return nearestPoints, nil
-}
 
-func (s *Storage) GetInPolygon(polygon []internal.Point) ([]internal.Point, error) {
-	return nil, nil
 }
