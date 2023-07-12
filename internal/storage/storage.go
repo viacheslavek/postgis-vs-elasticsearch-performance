@@ -1,13 +1,16 @@
 package storage
 
+import (
+	"context"
+	"github.com/VyacheslavIsWorkingNow/postgis-vs-elasticsearch-performance/internal"
+)
+
 type Storage interface {
-	AddPoint() error
-	DeletePoint() error
-	GetPoint() error
+	AddPoint(ctx context.Context, p internal.Point) error
+	AddBatch(ctx context.Context, points []internal.Point) error
+	DeletePoint(ctx context.Context, p internal.Point) error
+	IsPoint(ctx context.Context, p internal.Point) (bool, error)
 
-	//// и так далее додумать
-}
-
-type Point struct {
-	// Получше узнать, как представлять точки для добавления
+	GetInRadius(p internal.Point, radius float64) ([]internal.Point, error)
+	GetInPolygon(polygon []float64) ([]internal.Point, error)
 }
