@@ -3,25 +3,28 @@ package app
 import (
 	"context"
 	"fmt"
-	"github.com/VyacheslavIsWorkingNow/postgis-vs-elasticsearch-performance/internal/storage/postgis"
+	"github.com/VyacheslavIsWorkingNow/postgis-vs-elasticsearch-performance/internal/storage/elasticsearch"
 	"log"
 )
 
-func Run(dbPG *postgis.Storage) {
+func Run(es *elasticsearch.Storage) {
 
 	log.Printf("app start\n")
 
 	ctx := context.Background()
 
-	err := dbPG.Init(ctx)
-
+	err := es.Init(ctx)
 	if err != nil {
-		log.Fatalf("can't init postgis %e\n", err)
+		log.Fatalf("can't init es %e\n", err)
 	}
 
-	fmt.Println("опять я не убрал закоменченный код в прошлый раз")
+	log.Printf("connect to es\n")
 
-	fmt.Println("начинаю работу с эластиком")
+	err = es.Ping()
+
+	if err != nil {
+		log.Fatalf("can't ping es %e\n", err)
+	}
 
 	fmt.Println("end")
 
