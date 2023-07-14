@@ -6,6 +6,9 @@ import (
 )
 
 type Storage interface {
+	Init(ctx context.Context) error
+	Drop(ctx context.Context) error
+
 	AddPoint(ctx context.Context, p internal.Point) error
 	AddPointBatch(ctx context.Context, points []internal.Point) error
 	DeletePoint(ctx context.Context, p internal.Point) error
