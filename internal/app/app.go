@@ -26,12 +26,6 @@ func Run(es *elasticsearch.Storage) {
 		log.Fatalf("can't ping es %e\n", err)
 	}
 
-	err = es.Drop(ctx)
-
-	if err != nil {
-		log.Fatalf("can't drop es %e \n", err)
-	}
-
 	fmt.Println("end")
 
 }

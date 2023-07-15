@@ -3,8 +3,11 @@ package elasticsearch
 import (
 	"context"
 	"fmt"
+	"github.com/VyacheslavIsWorkingNow/postgis-vs-elasticsearch-performance/internal"
 	"github.com/elastic/go-elasticsearch/v8"
 	"github.com/elastic/go-elasticsearch/v8/esapi"
+	"github.com/elastic/go-elasticsearch/v8/esutil"
+	"github.com/google/uuid"
 	"io"
 	"log"
 	"strings"
@@ -69,7 +72,7 @@ func (s *Storage) Init(ctx context.Context) error {
 				"mappings": {
 					"properties": {
 						"id": {
-							"type": "integer"
+							"type": "keyword"
 						},
 						"point": {
 							"type": "geo_point"
@@ -131,7 +134,83 @@ func (s *Storage) Drop(ctx context.Context) error {
 	}
 
 	return nil
+}
 
+type esPoint struct {
+	Id       string `json:"id"`
+	GeoPoint string `json:"geo_point"`
+}
+
+func (s *Storage) AddPoint(ctx context.Context, p internal.Point) error {
+
+	doc := getDocument(convertPointToES(p))
+
+	indexRequest := esapi.IndexRequest{
+		Index:      "moscow_region",
+		DocumentID: doc.Id,
+		Body: strings.NewReader(
+			fmt.Sprintf(`point: %s`, doc.GeoPoint)),
+	}
+
+	indexResponse, err := indexRequest.Do(ctx, s.client)
+	if err != nil {
+		return fmt.Errorf("can't do request to add point %w\n", err)
+	}
+
+	defer func(Body io.ReadCloser) {
+		err = Body.Close()
+		if err != nil {
+			log.Printf("can`t close body add reqest\n")
+		}
+	}(indexResponse.Body)
+
+	if indexResponse.IsError() {
+		return fmt.Errorf("Error add the index: %s\n", indexResponse.String())
+	}
+
+	return nil
+}
+
+func (s *Storage) AddPointBatch(ctx context.Context, points []internal.Point) error {
+
+	pointsES := convertPointsToES(points)
+
+	bi, err := esutil.NewBulkIndexer(esutil.BulkIndexerConfig{
+		Client: s.client,
+		Index:  "moscow_region",
+	})
+	if err != nil {
+		return fmt.Errorf("can't init bulk connect %w\n", err)
+	}
+
+	for _, point := range pointsES {
+		err = bi.Add(ctx, esutil.BulkIndexerItem{
+			Action:     "index",
+			DocumentID: point.Id,
+			Body: strings.NewReader(
+				fmt.Sprintf(`point: %s`, point.GeoPoint)),
+		})
+		if err != nil {
+			return fmt.Errorf("can't add point to bulk indexer %w\n", err)
+		}
+	}
+
+	err = bi.Close(ctx)
+	if err != nil {
+		return fmt.Errorf("can;t close bulk %w\n", err)
+	}
+
+	return nil
+}
+
+func (s *Storage) DeletePoint(ctx context.Context, p internal.Point) error {
+	//TODO implement me
+	panic("implement me")
+}
+
+func (s *Storage) IsPointExist(ctx context.Context, p internal.Point) (bool, error) {
+	//TODO implement me
+	panic("implement me")
 }
 
 func (s *Storage) isExist(ctx context.Context) (bool, error) {
@@ -157,4 +236,24 @@ func (s *Storage) isExist(ctx context.Context) (bool, error) {
 	}
 
 	return false, nil
+}
+
+func convertPointToES(p internal.Point) string {
+	return fmt.Sprintf("%f, %f", p.Longitude, p.Latitude)
+}
+
+func convertPointsToES(points []internal.Point) []esPoint {
+	esPoints := make([]esPoint, len(points))
+	for i, p := range points {
+		esPoints[i] = getDocument(convertPointToES(p))
+	}
+
+	return esPoints
+}
+
+func getDocument(pointES string) esPoint {
+	return esPoint{
+		Id:       uuid.New().String(),
+		GeoPoint: pointES,
+	}
 }

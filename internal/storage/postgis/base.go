@@ -176,7 +176,7 @@ func (s *Storage) DeletePoint(ctx context.Context, p internal.Point) error {
 	return nil
 }
 
-func (s *Storage) IsPoint(ctx context.Context, p internal.Point) (bool, error) {
+func (s *Storage) IsPointExist(ctx context.Context, p internal.Point) (bool, error) {
 
 	q := `
 		SELECT count(*) AS count
