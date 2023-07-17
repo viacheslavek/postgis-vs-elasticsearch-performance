@@ -11,8 +11,6 @@ type Storage interface {
 
 	AddPoint(ctx context.Context, p internal.Point) error
 	AddPointBatch(ctx context.Context, points []internal.Point) error
-	DeletePoint(ctx context.Context, p internal.Point) error
-	IsPointExist(ctx context.Context, p internal.Point) (bool, error)
 
 	GetInRadius(ctx context.Context, p internal.Point, radius int) ([]internal.Point, error)
 	GetInPolygon(ctx context.Context, polygon []internal.Point) ([]internal.Point, error)

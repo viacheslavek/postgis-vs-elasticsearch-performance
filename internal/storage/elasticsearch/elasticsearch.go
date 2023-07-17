@@ -13,8 +13,6 @@ import (
 	"strings"
 )
 
-// получить все индексы curl -XGET 'http://localhost:9200/_cat/indices?v'
-
 type Storage struct {
 	client *elasticsearch.Client
 }
@@ -149,7 +147,7 @@ func (s *Storage) AddPoint(ctx context.Context, p internal.Point) error {
 		Index:      "moscow_region",
 		DocumentID: doc.Id,
 		Body: strings.NewReader(
-			fmt.Sprintf(`point: %s`, doc.GeoPoint)),
+			fmt.Sprintf(`{"point": "%s"}`, doc.GeoPoint)),
 	}
 
 	indexResponse, err := indexRequest.Do(ctx, s.client)
@@ -188,7 +186,7 @@ func (s *Storage) AddPointBatch(ctx context.Context, points []internal.Point) er
 			Action:     "index",
 			DocumentID: point.Id,
 			Body: strings.NewReader(
-				fmt.Sprintf(`point: %s`, point.GeoPoint)),
+				fmt.Sprintf(`{"point": "%s"}`, point.GeoPoint)),
 		})
 		if err != nil {
 			return fmt.Errorf("can't add point to bulk indexer %w\n", err)
@@ -201,16 +199,6 @@ func (s *Storage) AddPointBatch(ctx context.Context, points []internal.Point) er
 	}
 
 	return nil
-}
-
-func (s *Storage) DeletePoint(ctx context.Context, p internal.Point) error {
-	//TODO implement me
-	panic("implement me")
-}
-
-func (s *Storage) IsPointExist(ctx context.Context, p internal.Point) (bool, error) {
-	//TODO implement me
-	panic("implement me")
 }
 
 func (s *Storage) isExist(ctx context.Context) (bool, error) {
