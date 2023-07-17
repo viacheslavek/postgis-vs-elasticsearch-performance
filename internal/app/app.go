@@ -3,54 +3,32 @@ package app
 import (
 	"context"
 	"fmt"
-	"github.com/VyacheslavIsWorkingNow/postgis-vs-elasticsearch-performance/internal/genpoint"
-	"github.com/VyacheslavIsWorkingNow/postgis-vs-elasticsearch-performance/internal/storage/postgis"
+	"github.com/VyacheslavIsWorkingNow/postgis-vs-elasticsearch-performance/internal/storage/elasticsearch"
 	"log"
 )
 
-func Run(dbPG *postgis.Storage) {
+func Run(es *elasticsearch.Storage) {
 
 	log.Printf("app start\n")
 
 	ctx := context.Background()
 
-	err := dbPG.Init(ctx)
-
+	err := es.Init(ctx)
 	if err != nil {
-		log.Fatalf("can't init postgis %e\n", err)
+		log.Fatalf("can't init es %e\n", err)
 	}
 
-	//// генерирую точки
-	//generator := genpoint.SimplePointGenerator{}
-	//points := generator.GeneratePoints(5)
-	//
-	//// добавляю в PostGis
-	//err = dbPG.AddPointBatch(ctx, points)
-	//if err != nil {
-	//	fmt.Println("can`t add batch", err)
-	//}
-	//
-	//// тестовая генерация многоугольника
-	//// заменить на бейнчмарки
-	//pg := genpoint.PolygonGenerator{}
-	//fmt.Println(pg.GeneratePolygon(5))
-	//
-	//pointsGet, err := dbPG.GetInRadius(ctx, internal.Point{Latitude: 51.5074, Longitude: -1.1278}, 10e15)
-	//if err != nil {
-	//	fmt.Println(err)
-	//	return
-	//}
-	// fmt.Println(pointsGet)
-
-	pg := genpoint.PolygonGenerator{}
-
-	pointsGetPol, err := dbPG.GetInPolygon(ctx, pg.GeneratePolygon(5))
-	if err != nil {
-		fmt.Println(err)
-		return
-	}
-	fmt.Println(pointsGetPol)
+	log.Printf("connect to es\n")
 
 	fmt.Println("end")
 
 }
+
+// curl -X GET "http://localhost:9200/moscow_region/_search" -H "Content-Type: application/json" -d'
+//{
+//  "query": {
+//    "match_all": {}
+//  },
+//  "size": 100
+//}
+//'

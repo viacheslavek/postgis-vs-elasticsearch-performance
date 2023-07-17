@@ -2,7 +2,7 @@ package main
 
 import (
 	"github.com/VyacheslavIsWorkingNow/postgis-vs-elasticsearch-performance/internal/app"
-	"github.com/VyacheslavIsWorkingNow/postgis-vs-elasticsearch-performance/internal/storage/postgis"
+	"github.com/VyacheslavIsWorkingNow/postgis-vs-elasticsearch-performance/internal/storage/elasticsearch"
 	"log"
 )
 
@@ -12,11 +12,11 @@ func main() {
 
 	log.Printf("app starts launching\n")
 
-	postGis, err := postgis.New()
+	es, err := elasticsearch.New()
 
 	if err != nil {
-		log.Fatalf("can't connect to db %e\n", err)
+		log.Fatalf("can't connect to elasticsearch %e\n", err)
 	}
 
-	app.Run(postGis)
+	app.Run(es)
 }
