@@ -2,25 +2,26 @@ package app
 
 import (
 	"context"
-	"fmt"
+	"github.com/VyacheslavIsWorkingNow/postgis-vs-elasticsearch-performance/internal/benchmark"
 	"github.com/VyacheslavIsWorkingNow/postgis-vs-elasticsearch-performance/internal/storage/elasticsearch"
+	"github.com/VyacheslavIsWorkingNow/postgis-vs-elasticsearch-performance/internal/storage/postgis"
 	"log"
 )
 
-func Run(es *elasticsearch.Storage) {
+func Run(pg *postgis.Storage, es *elasticsearch.Storage) {
 
 	log.Printf("app start\n")
-
 	ctx := context.Background()
 
-	err := es.Init(ctx)
-	if err != nil {
-		log.Fatalf("can't init es %e\n", err)
+	if err := benchmark.RunBench(ctx, pg, "postgis", 20e1, 5, 10000); err != nil {
+		log.Fatalf("can't do postgis bench %e\n", err)
 	}
 
-	log.Printf("connect to es\n")
+	if err := benchmark.RunBench(ctx, es, "elasticseacrh", 20e1, 5, 10000); err != nil {
+		log.Fatalf("can't do postgis bench %e\n", err)
+	}
 
-	fmt.Println("end")
+	log.Printf("end\n")
 
 }
 
