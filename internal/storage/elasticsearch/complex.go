@@ -57,8 +57,6 @@ func (s *Storage) GetInPolygon(ctx context.Context, polygon []internal.Point) ([
 		"size": "1000"
 	}`, generateESPolygon(polygon))
 
-	fmt.Println(qJson)
-
 	return s.doRequestWithQuery(ctx, qJson)
 }
 

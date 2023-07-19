@@ -13,11 +13,11 @@ func Run(pg *postgis.Storage, es *elasticsearch.Storage) {
 	log.Printf("app start\n")
 	ctx := context.Background()
 
-	if err := benchmark.RunBench(ctx, pg, "postgis", 20e1); err != nil {
+	if err := benchmark.RunBench(ctx, pg, "postgis", 20e1, 5, 10000); err != nil {
 		log.Fatalf("can't do postgis bench %e\n", err)
 	}
 
-	if err := benchmark.RunBench(ctx, es, "elasticseacrh", 20e1); err != nil {
+	if err := benchmark.RunBench(ctx, es, "elasticseacrh", 20e1, 5, 10000); err != nil {
 		log.Fatalf("can't do postgis bench %e\n", err)
 	}
 
