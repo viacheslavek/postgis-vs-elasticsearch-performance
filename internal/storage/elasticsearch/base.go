@@ -56,87 +56,26 @@ func (s *Storage) Ping() error {
 
 func (s *Storage) Init(ctx context.Context) error {
 
-	if exist, err := s.isExist(ctx, "moscow_region"); err != nil || exist {
-		if err != nil {
-			return fmt.Errorf("can't check inExist %w\n", err)
-		}
-		return nil
-	}
-
-	indexRequest := esapi.IndicesCreateRequest{
-		Index: "moscow_region",
-		Body: strings.NewReader(`
-			{
-				"mappings": {
-					"properties": {
-						"id": {
-							"type": "keyword"
-						},
-						"point": {
-							"type": "geo_point"
-						}
+	mapping := `
+		{
+			"mappings": {
+				"properties": {
+					"id": {
+						"type": "keyword"
+					},
+					"point": {
+						"type": "geo_point"
 					}
 				}
-			}			
-		`),
-	}
-
-	indexResponse, err := indexRequest.Do(ctx, s.client)
-	if err != nil {
-		return fmt.Errorf("can't do request mapping %w\n", err)
-	}
-
-	defer func(Body io.ReadCloser) {
-		err = Body.Close()
-		if err != nil {
-			log.Printf("can`t close body\n")
+			}
 		}
-	}(indexResponse.Body)
+	`
 
-	if indexResponse.IsError() {
-		return fmt.Errorf("index response have err %v\n", indexResponse.String())
-	}
-
-	log.Println("index created success")
-
-	return nil
+	return s.initIndex(ctx, "moscow_region", mapping)
 }
 
 func (s *Storage) Drop(ctx context.Context) error {
-
-	if exist, err := s.isExist(ctx, "moscow_region"); err != nil || !exist {
-		if err != nil {
-			return fmt.Errorf("can't check inExist %w\n", err)
-		}
-		return nil
-	}
-
-	deleteIndexRequest := esapi.IndicesDeleteRequest{
-		Index: []string{"moscow_region"},
-	}
-
-	deleteIndexResponse, err := deleteIndexRequest.Do(ctx, s.client)
-	if err != nil {
-		return fmt.Errorf("can't do delete request %w\n", err)
-	}
-
-	defer func(Body io.ReadCloser) {
-		err = Body.Close()
-		if err != nil {
-			log.Printf("can't close body in delete\n")
-		}
-	}(deleteIndexResponse.Body)
-
-	if deleteIndexResponse.IsError() {
-		return fmt.Errorf("Error deleting the index: %s\n", deleteIndexResponse.String())
-	}
-
-	return nil
-}
-
-type esPoint struct {
-	Id       string `json:"id"`
-	GeoPoint string `json:"geo_point"`
+	return s.drop(ctx, "moscow_region")
 }
 
 func (s *Storage) AddPoint(ctx context.Context, p internal.Point) error {
@@ -150,23 +89,7 @@ func (s *Storage) AddPoint(ctx context.Context, p internal.Point) error {
 			fmt.Sprintf(`{"point": "%s"}`, doc.GeoPoint)),
 	}
 
-	indexResponse, err := indexRequest.Do(ctx, s.client)
-	if err != nil {
-		return fmt.Errorf("can't do request to add point %w\n", err)
-	}
-
-	defer func(Body io.ReadCloser) {
-		err = Body.Close()
-		if err != nil {
-			log.Printf("can`t close body add reqest\n")
-		}
-	}(indexResponse.Body)
-
-	if indexResponse.IsError() {
-		return fmt.Errorf("Error add the index: %s\n", indexResponse.String())
-	}
-
-	return nil
+	return s.addSingle(ctx, indexRequest)
 }
 
 func (s *Storage) AddPointBatch(ctx context.Context, points []internal.Point) error {
@@ -196,6 +119,96 @@ func (s *Storage) AddPointBatch(ctx context.Context, points []internal.Point) er
 	err = bi.Close(ctx)
 	if err != nil {
 		return fmt.Errorf("can;t close bulk %w\n", err)
+	}
+
+	return nil
+}
+
+type esPoint struct {
+	Id       string `json:"id"`
+	GeoPoint string `json:"geo_point"`
+}
+
+func (s *Storage) initIndex(ctx context.Context, index, mapping string) error {
+	if exist, err := s.isExist(ctx, index); err != nil || exist {
+		if err != nil {
+			return fmt.Errorf("can't check inExist %w\n", err)
+		}
+		return nil
+	}
+
+	indexRequest := esapi.IndicesCreateRequest{
+		Index: index,
+		Body:  strings.NewReader(mapping),
+	}
+
+	indexResponse, err := indexRequest.Do(ctx, s.client)
+	if err != nil {
+		return fmt.Errorf("can't do request mapping %w\n", err)
+	}
+
+	defer func(Body io.ReadCloser) {
+		err = Body.Close()
+		if err != nil {
+			log.Printf("can`t close body\n")
+		}
+	}(indexResponse.Body)
+
+	if indexResponse.IsError() {
+		return fmt.Errorf("index response have err %v\n", indexResponse.String())
+	}
+
+	return nil
+
+}
+
+func (s *Storage) drop(ctx context.Context, index string) error {
+	if exist, err := s.isExist(ctx, index); err != nil || !exist {
+		if err != nil {
+			return fmt.Errorf("can't check inExist %w\n", err)
+		}
+		return nil
+	}
+
+	deleteIndexRequest := esapi.IndicesDeleteRequest{
+		Index: []string{index},
+	}
+
+	deleteIndexResponse, err := deleteIndexRequest.Do(ctx, s.client)
+	if err != nil {
+		return fmt.Errorf("can't do delete request %w\n", err)
+	}
+
+	defer func(Body io.ReadCloser) {
+		err = Body.Close()
+		if err != nil {
+			log.Printf("can't close body in delete\n")
+		}
+	}(deleteIndexResponse.Body)
+
+	if deleteIndexResponse.IsError() {
+		return fmt.Errorf("Error deleting the index: %s\n", deleteIndexResponse.String())
+	}
+
+	return nil
+
+}
+
+func (s *Storage) addSingle(ctx context.Context, req esapi.IndexRequest) error {
+	indexResponse, err := req.Do(ctx, s.client)
+	if err != nil {
+		return fmt.Errorf("can't do request to add point %w\n", err)
+	}
+
+	defer func(Body io.ReadCloser) {
+		err = Body.Close()
+		if err != nil {
+			log.Printf("can`t close body add reqest\n")
+		}
+	}(indexResponse.Body)
+
+	if indexResponse.IsError() {
+		return fmt.Errorf("Error add the index: %s\n", indexResponse.String())
 	}
 
 	return nil

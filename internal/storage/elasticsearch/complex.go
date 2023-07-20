@@ -6,6 +6,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"github.com/VyacheslavIsWorkingNow/postgis-vs-elasticsearch-performance/internal"
+	"github.com/VyacheslavIsWorkingNow/postgis-vs-elasticsearch-performance/internal/genpoint"
 	"io"
 	"log"
 	"strconv"
@@ -16,7 +17,10 @@ type Response struct {
 	Hits struct {
 		Hits []struct {
 			Source struct {
-				Point string `json:"point"`
+				Point   string `json:"point"`
+				Polygon struct {
+					Coordinates [][][]float64 `json:"coordinates"`
+				} `json:"polygon"`
 			} `json:"_source"`
 		} `json:"hits"`
 	} `json:"hits"`
@@ -40,12 +44,18 @@ func (s *Storage) GetInRadius(ctx context.Context, p internal.Point, radius int)
 	}
 	`, radius, convertPointToES(p))
 
-	return s.doRequestWithQuery(ctx, qJSON)
+	resp, err := s.doSearchRequestWithQuery(ctx, qJSON, "moscow_region")
+
+	if err != nil {
+		return nil, fmt.Errorf("can't doSearchPointRequestWithQuery InRadius %w\n", err)
+	}
+
+	return getInternalPointsFromStructString(*resp), nil
 }
 
 func (s *Storage) GetInPolygon(ctx context.Context, polygon []internal.Point) ([]internal.Point, error) {
 
-	qJson := fmt.Sprintf(`
+	qJSON := fmt.Sprintf(`
 	{
 		"query": {
 			"geo_polygon": {
@@ -57,13 +67,96 @@ func (s *Storage) GetInPolygon(ctx context.Context, polygon []internal.Point) ([
 		"size": "1000"
 	}`, generateESPolygon(polygon))
 
-	return s.doRequestWithQuery(ctx, qJson)
+	resp, err := s.doSearchRequestWithQuery(ctx, qJSON, "moscow_region")
+
+	if err != nil {
+		return nil, fmt.Errorf("can't doSearchPointRequestWithQuery InPolygon %w\n", err)
+	}
+
+	return getInternalPointsFromStructString(*resp), nil
 }
 
-func (s *Storage) doRequestWithQuery(ctx context.Context, qJSON string) ([]internal.Point, error) {
+func (s *Storage) GetInRadiusPolygon(ctx context.Context, p internal.Polygon, radius int) ([]internal.Polygon, error) {
+
+	radiusPolygon := genpoint.GetPolygonWithRadius(p.Vertical, radius)
+
+	qJSON := fmt.Sprintf(`
+	{
+		"query": {
+			"bool": {
+				"filter": {
+					"geo_shape": {
+						"polygon": {
+							"relation": "within",
+							"shape": {
+								"type": "polygon",
+								"coordinates": [[%s]]
+							}
+						}
+					}
+				}
+			}
+		},
+		"size": "1000"
+	}`, generateESPolygon(radiusPolygon))
+
+	resp, err := s.doSearchRequestWithQuery(ctx, qJSON, "moscow_region_polygon")
+
+	if err != nil {
+		return nil, fmt.Errorf("can't doSearchPointRequestWithQuery InRadiusPolygon %w\n", err)
+	}
+
+	return getInternalPolygonsFromStructString(*resp), nil
+
+}
+
+func (s *Storage) GetInPolygonPolygon(ctx context.Context, polygon []internal.Point) ([]internal.Polygon, error) {
+
+	qJSON := fmt.Sprintf(`
+	{
+		"query": {
+			"bool": {
+				"filter": {
+					"geo_shape": {
+						"polygon": {
+							"relation": "within",
+							"shape": {
+								"type": "polygon",
+								"coordinates": [
+									[%s]
+								]
+							}
+						}
+					}
+				}
+			}
+		},
+		"size": "1000"
+	}`, generateESPolygon(polygon))
+
+	resp, err := s.doSearchRequestWithQuery(ctx, qJSON, "moscow_region_polygon")
+
+	if err != nil {
+		return nil, fmt.Errorf("can't doSearchPointRequestWithQuery InPolygonPolygon %w\n", err)
+	}
+
+	return getInternalPolygonsFromStructString(*resp), nil
+}
+
+func (s *Storage) GetIntersectionPolygon(ctx context.Context, polygon []internal.Point) ([]internal.Polygon, error) {
+	//TODO implement me
+	panic("implement me")
+}
+
+func (s *Storage) GetIntersectionPoint(ctx context.Context, point internal.Point) ([]internal.Polygon, error) {
+	//TODO implement me
+	panic("implement me")
+}
+
+func (s *Storage) doSearchRequestWithQuery(ctx context.Context, qJSON, index string) (*Response, error) {
 	res, err := s.client.Search(
 		s.client.Search.WithContext(ctx),
-		s.client.Search.WithIndex("moscow_region"),
+		s.client.Search.WithIndex(index),
 		s.client.Search.WithBody(strings.NewReader(qJSON)),
 	)
 	if err != nil {
@@ -93,7 +186,28 @@ func (s *Storage) doRequestWithQuery(ctx context.Context, qJSON string) ([]inter
 		return nil, fmt.Errorf("can't unmarshal Json %w\n", err)
 	}
 
-	return getInternalPointsFromStructString(response), nil
+	return &response, nil
+}
+
+func getInternalPolygonsFromStructString(response Response) []internal.Polygon {
+	polygons := make([]internal.Polygon, 0)
+	for _, hit := range response.Hits.Hits {
+		polygon := internal.Polygon{
+			Vertical: getPointsFromFloat(hit.Source.Polygon.Coordinates),
+		}
+		polygons = append(polygons, polygon)
+	}
+	return polygons
+}
+
+func getPointsFromFloat(coordinate [][][]float64) []internal.Point {
+
+	points := make([]internal.Point, len(coordinate[0]))
+	for i, p := range coordinate[0] {
+		points[i].Latitude = p[0]
+		points[i].Longitude = p[1]
+	}
+	return points
 }
 
 func getInternalPointsFromStructString(response Response) []internal.Point {

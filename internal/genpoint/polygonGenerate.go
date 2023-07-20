@@ -70,6 +70,46 @@ func (pg *PolygonGenerator) GeneratePolygons(N int) []internal.Polygon {
 
 }
 
+func GetPolygonWithRadius(polygon []internal.Point, radius int) []internal.Point {
+
+	newPolygon := make([]internal.Point, len(polygon))
+
+	centre := centrePoint(polygon)
+
+	summer := math.Round((math.Sqrt(float64(radius))/(2*111000))*10e6) / 10e5
+
+	for i, p := range polygon {
+		// lat - Y, lon - X
+		if p.Latitude > centre.Latitude && p.Longitude > centre.Longitude {
+			// 1 четверть
+			newPolygon[i].Latitude = summer + polygon[i].Latitude
+			newPolygon[i].Latitude = math.Round(newPolygon[i].Latitude*10e5) / 10e5
+			newPolygon[i].Longitude = summer + polygon[i].Longitude
+			newPolygon[i].Longitude = math.Round(newPolygon[i].Longitude*10e5) / 10e5
+		} else if p.Latitude > centre.Latitude && p.Longitude < centre.Longitude {
+			// 2 четверть
+			newPolygon[i].Latitude = summer - polygon[i].Latitude
+			newPolygon[i].Latitude = math.Round(newPolygon[i].Latitude*10e5) / 10e5
+			newPolygon[i].Longitude = summer + polygon[i].Longitude
+			newPolygon[i].Longitude = math.Round(newPolygon[i].Longitude*10e5) / 10e5
+		} else if p.Latitude < centre.Latitude && p.Longitude < centre.Longitude {
+			// 3 четверть
+			newPolygon[i].Latitude = summer - polygon[i].Latitude
+			newPolygon[i].Latitude = math.Round(newPolygon[i].Latitude*10e5) / 10e5
+			newPolygon[i].Longitude = summer - polygon[i].Longitude
+			newPolygon[i].Longitude = math.Round(newPolygon[i].Longitude*10e5) / 10e5
+		} else {
+			// 4 четверть
+			newPolygon[i].Latitude = summer + polygon[i].Latitude
+			newPolygon[i].Latitude = math.Round(newPolygon[i].Latitude*10e5) / 10e5
+			newPolygon[i].Longitude = summer - polygon[i].Longitude
+			newPolygon[i].Longitude = math.Round(newPolygon[i].Longitude*10e5) / 10e5
+		}
+	}
+
+	return newPolygon
+}
+
 func centrePoint(points []internal.Point) internal.Point {
 	sumX, sumY := 0.0, 0.0
 
@@ -78,8 +118,8 @@ func centrePoint(points []internal.Point) internal.Point {
 		sumY += point.Longitude
 	}
 
-	pX := math.Round(sumX/float64(len(points))*10e6) / 10e6
-	pY := math.Round(sumY/float64(len(points))*10e6) / 10e6
+	pX := math.Round(sumX/float64(len(points))*10e5) / 10e5
+	pY := math.Round(sumY/float64(len(points))*10e5) / 10e5
 
 	return internal.Point{
 		Latitude:  pX,

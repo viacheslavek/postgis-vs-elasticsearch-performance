@@ -7,127 +7,47 @@ import (
 	"github.com/elastic/go-elasticsearch/v8/esapi"
 	"github.com/elastic/go-elasticsearch/v8/esutil"
 	"github.com/google/uuid"
-	"io"
-	"log"
 	"strings"
 )
 
-// TODO: отрефакторить код так, чтобы я для всех запросов в es передавал только queryJSON в вспомогательную функцию,
-// тем самым сокращу код
-
 func (s *Storage) InitPolygon(ctx context.Context) error {
 
-	if exist, err := s.isExist(ctx, "moscow_region_polygon"); err != nil || exist {
-		if err != nil {
-			return fmt.Errorf("can't check inExist %w\n", err)
-		}
-		return nil
-	}
-
-	indexRequest := esapi.IndicesCreateRequest{
-		Index: "moscow_region_polygon",
-		Body: strings.NewReader(`
-			{
-				"mappings": {
-					"properties": {
-						"id": {
-							"type": "keyword"
-						},
-						"polygon": {
-							"type": "geo_shape"
-						}
+	mapping := `
+		{
+			"mappings": {
+				"properties": {
+					"id": {
+						"type": "keyword"
+					},
+					"polygon": {
+						"type": "geo_shape"
 					}
 				}
-			}			
-		`),
-	}
+			}
+		}	
+	`
 
-	indexResponse, err := indexRequest.Do(ctx, s.client)
-	if err != nil {
-		return fmt.Errorf("can't do request mapping %w\n", err)
-	}
-
-	defer func(Body io.ReadCloser) {
-		err = Body.Close()
-		if err != nil {
-			log.Printf("can`t close body\n")
-		}
-	}(indexResponse.Body)
-
-	if indexResponse.IsError() {
-		return fmt.Errorf("index response have err %v\n", indexResponse.String())
-	}
-
-	log.Println("index created success")
-
-	return nil
+	return s.initIndex(ctx, "moscow_region_polygon", mapping)
 }
 
 func (s *Storage) DropPolygon(ctx context.Context) error {
-
-	if exist, err := s.isExist(ctx, "moscow_region_polygon"); err != nil || !exist {
-		if err != nil {
-			return fmt.Errorf("can't check inExist %w\n", err)
-		}
-		return nil
-	}
-
-	deleteIndexRequest := esapi.IndicesDeleteRequest{
-		Index: []string{"moscow_region_polygon"},
-	}
-
-	deleteIndexResponse, err := deleteIndexRequest.Do(ctx, s.client)
-	if err != nil {
-		return fmt.Errorf("can't do delete request %w\n", err)
-	}
-
-	defer func(Body io.ReadCloser) {
-		err = Body.Close()
-		if err != nil {
-			log.Printf("can't close body in delete\n")
-		}
-	}(deleteIndexResponse.Body)
-
-	if deleteIndexResponse.IsError() {
-		return fmt.Errorf("Error deleting the index: %s\n", deleteIndexResponse.String())
-	}
-
-	return nil
+	return s.drop(ctx, "moscow_region_polygon")
 }
 
 func (s *Storage) AddPolygon(ctx context.Context, p internal.Polygon) error {
 
-	docId := uuid.New().String()
-
 	indexRequest := esapi.IndexRequest{
 		Index:      "moscow_region_polygon",
-		DocumentID: docId,
+		DocumentID: uuid.New().String(),
 		Body: strings.NewReader(
 			fmt.Sprintf(`
-				{"geo_polygon": {
-					"points": [%s]
+				{"polygon": {
+					"type": "polygon",
+					"coordinates": [[%s]]
 				}}`, generateESPolygon(p.Vertical))),
 	}
 
-	fmt.Println(indexRequest.Body)
-
-	indexResponse, err := indexRequest.Do(ctx, s.client)
-	if err != nil {
-		return fmt.Errorf("can't do request to add point %w\n", err)
-	}
-
-	defer func(Body io.ReadCloser) {
-		err = Body.Close()
-		if err != nil {
-			log.Printf("can`t close body add reqest\n")
-		}
-	}(indexResponse.Body)
-
-	if indexResponse.IsError() {
-		return fmt.Errorf("Error add the index: %s\n", indexResponse.String())
-	}
-
-	return nil
+	return s.addSingle(ctx, indexRequest)
 }
 
 func (s *Storage) AddPolygonBatch(ctx context.Context, polygon []internal.Polygon) error {
@@ -147,7 +67,7 @@ func (s *Storage) AddPolygonBatch(ctx context.Context, polygon []internal.Polygo
 			Action:     "index",
 			DocumentID: uuid.New().String(),
 			Body: strings.NewReader(
-				fmt.Sprintf(`{"geo_polygon": {"points": [%s]}}`, poly)),
+				fmt.Sprintf(`{"polygon": {"type": "polygon", "coordinates": [[%s]] }}`, poly)),
 		})
 
 		if err != nil {
@@ -161,26 +81,6 @@ func (s *Storage) AddPolygonBatch(ctx context.Context, polygon []internal.Polygo
 	}
 
 	return nil
-}
-
-func (s *Storage) GetInRadiusPolygon(ctx context.Context, p internal.Polygon, radius int) ([]internal.Polygon, error) {
-	//TODO implement me
-	panic("implement me")
-}
-
-func (s *Storage) GetInPolygonPolygon(ctx context.Context, polygon []internal.Point) ([]internal.Polygon, error) {
-	//TODO implement me
-	panic("implement me")
-}
-
-func (s *Storage) GetIntersectionPolygon(ctx context.Context, polygon []internal.Point) ([]internal.Polygon, error) {
-	//TODO implement me
-	panic("implement me")
-}
-
-func (s *Storage) GetIntersectionPoint(ctx context.Context, point internal.Point) ([]internal.Polygon, error) {
-	//TODO implement me
-	panic("implement me")
 }
 
 func convertPolygonsToES(polygons []internal.Polygon) []string {
