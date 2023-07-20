@@ -56,7 +56,7 @@ func (s *Storage) Ping() error {
 
 func (s *Storage) Init(ctx context.Context) error {
 
-	if exist, err := s.isExist(ctx); err != nil || exist {
+	if exist, err := s.isExist(ctx, "moscow_region"); err != nil || exist {
 		if err != nil {
 			return fmt.Errorf("can't check inExist %w\n", err)
 		}
@@ -104,7 +104,7 @@ func (s *Storage) Init(ctx context.Context) error {
 
 func (s *Storage) Drop(ctx context.Context) error {
 
-	if exist, err := s.isExist(ctx); err != nil || !exist {
+	if exist, err := s.isExist(ctx, "moscow_region"); err != nil || !exist {
 		if err != nil {
 			return fmt.Errorf("can't check inExist %w\n", err)
 		}
@@ -201,9 +201,9 @@ func (s *Storage) AddPointBatch(ctx context.Context, points []internal.Point) er
 	return nil
 }
 
-func (s *Storage) isExist(ctx context.Context) (bool, error) {
+func (s *Storage) isExist(ctx context.Context, index string) (bool, error) {
 	indexExistsRequest := esapi.IndicesExistsRequest{
-		Index: []string{"moscow_region"},
+		Index: []string{index},
 	}
 
 	indexExistsResponse, err := indexExistsRequest.Do(ctx, s.client)

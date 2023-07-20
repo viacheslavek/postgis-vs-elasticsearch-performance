@@ -3,6 +3,7 @@ package genpoint
 import (
 	"github.com/VyacheslavIsWorkingNow/postgis-vs-elasticsearch-performance/internal"
 	"math"
+	"math/rand"
 	"sort"
 )
 
@@ -52,6 +53,21 @@ func (pg *PolygonGenerator) GeneratePolygon(N int) []internal.Point {
 	points = append(points, points[0])
 
 	return points
+}
+
+func (pg *PolygonGenerator) GeneratePolygons(N int) []internal.Polygon {
+
+	polygons := make([]internal.Polygon, N)
+
+	for i := 0; i < N; i++ {
+		angel := rand.Intn(30)
+		// get rid of zero
+		angel++
+		polygons[i] = internal.Polygon{Vertical: pg.GeneratePolygon(angel)}
+	}
+
+	return polygons
+
 }
 
 func centrePoint(points []internal.Point) internal.Point {
