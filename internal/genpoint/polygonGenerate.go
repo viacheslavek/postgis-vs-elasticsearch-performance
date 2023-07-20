@@ -2,6 +2,8 @@ package genpoint
 
 import (
 	"github.com/VyacheslavIsWorkingNow/postgis-vs-elasticsearch-performance/internal"
+	"github.com/paulmach/orb"
+	"github.com/paulmach/orb/geo"
 	"math"
 	"math/rand"
 	"sort"
@@ -70,44 +72,16 @@ func (pg *PolygonGenerator) GeneratePolygons(N int) []internal.Polygon {
 
 }
 
-func GetPolygonWithRadius(polygon []internal.Point, radius int) []internal.Point {
-
-	newPolygon := make([]internal.Point, len(polygon))
+func GetCentralPolygonPointWithRadius(polygon []internal.Point, radius int) (internal.Point, int) {
 
 	centre := centrePoint(polygon)
 
-	summer := math.Round((math.Sqrt(float64(radius))/(2*111000))*10e6) / 10e5
+	centre.Longitude = math.Round(centre.Longitude*10e5) / 10e5
+	centre.Latitude = math.Round(centre.Latitude*10e5) / 10e5
 
-	for i, p := range polygon {
-		// lat - Y, lon - X
-		if p.Latitude > centre.Latitude && p.Longitude > centre.Longitude {
-			// 1 четверть
-			newPolygon[i].Latitude = summer + polygon[i].Latitude
-			newPolygon[i].Latitude = math.Round(newPolygon[i].Latitude*10e5) / 10e5
-			newPolygon[i].Longitude = summer + polygon[i].Longitude
-			newPolygon[i].Longitude = math.Round(newPolygon[i].Longitude*10e5) / 10e5
-		} else if p.Latitude > centre.Latitude && p.Longitude < centre.Longitude {
-			// 2 четверть
-			newPolygon[i].Latitude = summer - polygon[i].Latitude
-			newPolygon[i].Latitude = math.Round(newPolygon[i].Latitude*10e5) / 10e5
-			newPolygon[i].Longitude = summer + polygon[i].Longitude
-			newPolygon[i].Longitude = math.Round(newPolygon[i].Longitude*10e5) / 10e5
-		} else if p.Latitude < centre.Latitude && p.Longitude < centre.Longitude {
-			// 3 четверть
-			newPolygon[i].Latitude = summer - polygon[i].Latitude
-			newPolygon[i].Latitude = math.Round(newPolygon[i].Latitude*10e5) / 10e5
-			newPolygon[i].Longitude = summer - polygon[i].Longitude
-			newPolygon[i].Longitude = math.Round(newPolygon[i].Longitude*10e5) / 10e5
-		} else {
-			// 4 четверть
-			newPolygon[i].Latitude = summer + polygon[i].Latitude
-			newPolygon[i].Latitude = math.Round(newPolygon[i].Latitude*10e5) / 10e5
-			newPolygon[i].Longitude = summer - polygon[i].Longitude
-			newPolygon[i].Longitude = math.Round(newPolygon[i].Longitude*10e5) / 10e5
-		}
-	}
+	newRadius := radius + getDelta(centre, polygon)
 
-	return newPolygon
+	return centre, newRadius
 }
 
 func centrePoint(points []internal.Point) internal.Point {
@@ -125,6 +99,25 @@ func centrePoint(points []internal.Point) internal.Point {
 		Latitude:  pX,
 		Longitude: pY,
 	}
+}
+
+func getDelta(centre internal.Point, polygon []internal.Point) int {
+	centreOrb := orb.Point{centre.Longitude, centre.Latitude}
+
+	polygonOrb := make([]orb.Point, len(polygon))
+
+	for i, p := range polygon {
+		polygonOrb[i] = orb.Point{p.Longitude, p.Latitude}
+	}
+
+	var maxDistance float64
+	for _, point := range polygonOrb {
+		distance := geo.DistanceHaversine(centreOrb, point)
+		maxDistance = math.Max(maxDistance, distance)
+	}
+
+	return int(math.Round(maxDistance) * 1000)
+
 }
 
 func getDistances(centre internal.Point, points []internal.Point) []float64 {

@@ -78,7 +78,7 @@ func (s *Storage) GetInPolygon(ctx context.Context, polygon []internal.Point) ([
 
 func (s *Storage) GetInRadiusPolygon(ctx context.Context, p internal.Polygon, radius int) ([]internal.Polygon, error) {
 
-	radiusPolygon := genpoint.GetPolygonWithRadius(p.Vertical, radius)
+	centralPoint, newRadius := genpoint.GetCentralPolygonPointWithRadius(p.Vertical, radius)
 
 	qJSON := fmt.Sprintf(`
 	{
@@ -87,18 +87,19 @@ func (s *Storage) GetInRadiusPolygon(ctx context.Context, p internal.Polygon, ra
 				"filter": {
 					"geo_shape": {
 						"polygon": {
-							"relation": "within",
 							"shape": {
-								"type": "polygon",
-								"coordinates": [[%s]]
-							}
+								"type":"circle",
+								"coordinates": [%f, %f],
+								"radius": "%dm"
+							},
+							"relation": "within"
 						}
 					}
 				}
 			}
 		},
 		"size": "1000"
-	}`, generateESPolygon(radiusPolygon))
+	}`, centralPoint.Latitude, centralPoint.Longitude, newRadius)
 
 	resp, err := s.doSearchRequestWithQuery(ctx, qJSON, "moscow_region_polygon")
 

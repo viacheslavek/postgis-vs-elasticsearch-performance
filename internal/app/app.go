@@ -2,6 +2,7 @@ package app
 
 import (
 	"context"
+	"fmt"
 	"github.com/VyacheslavIsWorkingNow/postgis-vs-elasticsearch-performance/internal/benchmark"
 	"github.com/VyacheslavIsWorkingNow/postgis-vs-elasticsearch-performance/internal/genpoint"
 	"github.com/VyacheslavIsWorkingNow/postgis-vs-elasticsearch-performance/internal/storage/elasticsearch"
@@ -23,29 +24,21 @@ func Run(pg *postgis.Storage, es *elasticsearch.Storage) {
 		log.Fatalf("can't do es bench %e\n", err)
 	}
 
-	err := es.DropPolygon(ctx)
+	polygonGen := genpoint.PolygonGenerator{}
+
+	polygons := polygonGen.GeneratePolygons(1e4)
+
+	err := es.AddPolygonBatch(ctx, polygons)
 	if err != nil {
-		log.Fatalf("can't do es search 1 %e\n", err)
+		log.Fatalf("opps %e", err)
 	}
 
-	err = es.InitPolygon(ctx)
+	polygon, err := es.GetInRadiusPolygon(ctx, polygons[0], 10000)
 	if err != nil {
-		log.Fatalf("can't do es search 1 %e\n", err)
+		return
 	}
 
-	genp := genpoint.PolygonGenerator{}
-
-	polygons := genp.GeneratePolygons(1e4)
-
-	err = es.AddPolygon(ctx, polygons[0])
-	if err != nil {
-		log.Fatalf("can't do es search 1 %e\n", err)
-	}
-
-	err = es.AddPolygonBatch(ctx, polygons)
-	if err != nil {
-		log.Fatalf("can't do es search 1 %e\n", err)
-	}
+	fmt.Println(polygon)
 
 	log.Printf("end\n")
 
