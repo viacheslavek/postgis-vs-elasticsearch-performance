@@ -17,15 +17,7 @@ func (s *Storage) InitPolygon(ctx context.Context) error {
 		);
 	`
 
-	_, err := s.db.Exec(
-		ctx,
-		q,
-	)
-	if err != nil {
-		return fmt.Errorf("can't create tables %w", err)
-	}
-
-	return nil
+	return s.initBase(ctx, q)
 }
 
 func (s *Storage) DropPolygon(ctx context.Context) error {
@@ -33,15 +25,7 @@ func (s *Storage) DropPolygon(ctx context.Context) error {
 		DROP TABLE IF EXISTS moscow_region_polygon;
 	`
 
-	_, err := s.db.Exec(
-		ctx,
-		q,
-	)
-	if err != nil {
-		return fmt.Errorf("can't drop tables %w", err)
-	}
-
-	return nil
+	return s.drop(ctx, q)
 }
 
 func (s *Storage) AddPolygon(ctx context.Context, polygon internal.Polygon) error {
@@ -92,21 +76,7 @@ func (s *Storage) AddPolygonBatch(ctx context.Context, polygons []internal.Polyg
 		batch.Queue(q, translatePolygonToWKT(p.Vertical))
 	}
 
-	results := conn.SendBatch(ctx, batch)
-
-	// необязательно, если мы хотим максимальную скорость
-	for i := 0; i < len(polygons); i++ {
-		_, err = results.Exec()
-		if err != nil {
-			return fmt.Errorf("can't execute batch queure: %w\n", err)
-		}
-	}
-
-	if err = results.Close(); err != nil {
-		return fmt.Errorf("can`t close batch results: %w", err)
-	}
-
-	return nil
+	return s.addBatch(ctx, conn, batch, len(polygons))
 }
 
 func translatePolygonToWKT(polygon []internal.Point) string {
@@ -114,7 +84,6 @@ func translatePolygonToWKT(polygon []internal.Point) string {
 	for i, p := range polygon {
 		wktPoints[i] = fmt.Sprintf("%f %f", p.Longitude, p.Latitude)
 	}
-	fmt.Println(wktPoints)
 
 	return fmt.Sprintf("POLYGON((%s))", strings.Join(wktPoints, ", "))
 }

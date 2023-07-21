@@ -66,15 +66,7 @@ func (s *Storage) Init(ctx context.Context) error {
 		);
 	`
 
-	_, err := s.db.Exec(
-		ctx,
-		q,
-	)
-	if err != nil {
-		return fmt.Errorf("can't create tables %w", err)
-	}
-
-	return nil
+	return s.initBase(ctx, q)
 }
 
 func (s *Storage) Drop(ctx context.Context) error {
@@ -82,15 +74,7 @@ func (s *Storage) Drop(ctx context.Context) error {
 		DROP TABLE IF EXISTS moscow_region;
 	`
 
-	_, err := s.db.Exec(
-		ctx,
-		q,
-	)
-	if err != nil {
-		return fmt.Errorf("can't drop tables %w", err)
-	}
-
-	return nil
+	return s.drop(ctx, q)
 }
 
 func (s *Storage) AddPoint(ctx context.Context, p internal.Point) error {
@@ -142,21 +126,7 @@ func (s *Storage) AddPointBatch(ctx context.Context, points []internal.Point) er
 		batch.Queue(q, p.Longitude, p.Latitude)
 	}
 
-	results := conn.SendBatch(ctx, batch)
-
-	// необязательно, если мы хотим максимальную скорость
-	for i := 0; i < len(points); i++ {
-		_, err = results.Exec()
-		if err != nil {
-			return fmt.Errorf("can't execute batch queure: %w\n", err)
-		}
-	}
-
-	if err = results.Close(); err != nil {
-		return fmt.Errorf("can`t close batch results: %w", err)
-	}
-
-	return nil
+	return s.addBatch(ctx, conn, batch, len(points))
 }
 
 func (s *Storage) DeletePoint(ctx context.Context, p internal.Point) error {
@@ -196,4 +166,46 @@ func (s *Storage) IsPointExist(ctx context.Context, p internal.Point) (bool, err
 	}
 
 	return false, nil
+}
+
+func (s *Storage) initBase(ctx context.Context, query string) error {
+	_, err := s.db.Exec(
+		ctx,
+		query,
+	)
+	if err != nil {
+		return fmt.Errorf("can't create tables %w", err)
+	}
+
+	return nil
+}
+
+func (s *Storage) drop(ctx context.Context, query string) error {
+	_, err := s.db.Exec(
+		ctx,
+		query,
+	)
+	if err != nil {
+		return fmt.Errorf("can't drop tables %w", err)
+	}
+
+	return nil
+}
+
+func (s *Storage) addBatch(ctx context.Context, conn *pgxpool.Conn, batch *pgx.Batch, N int) error {
+	results := conn.SendBatch(ctx, batch)
+
+	// необязательно, если мы хотим максимальную скорость
+	for i := 0; i < N; i++ {
+		_, err := results.Exec()
+		if err != nil {
+			return fmt.Errorf("can't execute batch queure: %w\n", err)
+		}
+	}
+
+	if err := results.Close(); err != nil {
+		return fmt.Errorf("can`t close batch results: %w", err)
+	}
+
+	return nil
 }

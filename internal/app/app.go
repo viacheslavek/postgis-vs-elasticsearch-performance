@@ -2,6 +2,7 @@ package app
 
 import (
 	"context"
+	"fmt"
 	"github.com/VyacheslavIsWorkingNow/postgis-vs-elasticsearch-performance/internal/benchmark"
 	"github.com/VyacheslavIsWorkingNow/postgis-vs-elasticsearch-performance/internal/genpoint"
 	"github.com/VyacheslavIsWorkingNow/postgis-vs-elasticsearch-performance/internal/storage/elasticsearch"
@@ -27,12 +28,34 @@ func Run(pg *postgis.Storage, es *elasticsearch.Storage) {
 
 	polygons := polygonGen.GeneratePolygons(2e4)
 
-	err := pg.InitPolygon(ctx)
+	err := pg.DropPolygon(ctx)
+	if err != nil {
+		log.Fatalf("can't init postgis polygon %e\n", err)
+	}
+
+	err = pg.InitPolygon(ctx)
 	if err != nil {
 		log.Fatalf("can't init postgis polygon %e\n", err)
 	}
 
 	err = pg.AddPolygonBatch(ctx, polygons)
+	if err != nil {
+		log.Fatalf("can't add postgis polygon %e\n", err)
+	}
+
+	err = pg.AddPolygon(ctx, polygons[0])
+	if err != nil {
+		log.Fatalf("can't add postgis polygon %e\n", err)
+	}
+
+	fmt.Println("all add")
+
+	_, err = pg.GetInPolygonPolygon(ctx, polygons[0].Vertical)
+	if err != nil {
+		log.Fatalf("can't add postgis polygon %e\n", err)
+	}
+
+	_, err = pg.GetInRadiusPolygon(ctx, polygons[0], 10)
 	if err != nil {
 		log.Fatalf("can't add postgis polygon %e\n", err)
 	}
