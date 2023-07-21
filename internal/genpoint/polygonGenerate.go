@@ -63,8 +63,8 @@ func (pg *PolygonGenerator) GeneratePolygons(N int) []internal.Polygon {
 
 	for i := 0; i < N; i++ {
 		angel := rand.Intn(30)
-		// get rid of zero
-		angel++
+		// get rid of zero-two
+		angel += 3
 		polygons[i] = internal.Polygon{Vertical: pg.GeneratePolygon(angel)}
 	}
 
@@ -116,7 +116,7 @@ func getDelta(centre internal.Point, polygon []internal.Point) int {
 		maxDistance = math.Max(maxDistance, distance)
 	}
 
-	return int(math.Round(maxDistance) * 1000)
+	return int(math.Round(maxDistance))
 
 }
 

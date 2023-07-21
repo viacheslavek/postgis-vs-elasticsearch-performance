@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 	"github.com/VyacheslavIsWorkingNow/postgis-vs-elasticsearch-performance/internal"
+	"github.com/VyacheslavIsWorkingNow/postgis-vs-elasticsearch-performance/internal/genpoint"
 	"github.com/jackc/pgx/v5"
 	"log"
 	"strconv"
@@ -29,19 +30,13 @@ func (s *Storage) GetInRadius(ctx context.Context, p internal.Point, radius int)
 		return nil, fmt.Errorf("can't get in radius %w\n", err)
 	}
 
-	return translateRows(rows)
+	return translateRowsPoint(rows)
 
 }
 
 func (s *Storage) GetInPolygon(ctx context.Context, polygon []internal.Point) ([]internal.Point, error) {
 
-	// преобразовать многоугольник в формат WKT
-
-	wktPoints := make([]string, len(polygon))
-	for i, p := range polygon {
-		wktPoints[i] = fmt.Sprintf("%f %f", p.Longitude, p.Latitude)
-	}
-	polygonWKT := fmt.Sprintf("POLYGON((%s))", strings.Join(wktPoints, ","))
+	polygonWKT := translatePolygonToWKT(polygon)
 
 	q := `
 		SELECT ST_AsText(geom)
@@ -49,7 +44,7 @@ func (s *Storage) GetInPolygon(ctx context.Context, polygon []internal.Point) ([
 		WHERE ST_Within(
 		    geom, 
 		    ST_SetSRID(ST_GeomFromText($1), 4326)
-		)
+		);
 	`
 
 	rows, err := s.db.Query(ctx, q, polygonWKT)
@@ -59,10 +54,93 @@ func (s *Storage) GetInPolygon(ctx context.Context, polygon []internal.Point) ([
 		return nil, fmt.Errorf("can't querry points in polygon %w\n", err)
 	}
 
-	return translateRows(rows)
+	return translateRowsPoint(rows)
 }
 
-func translateRows(rows pgx.Rows) ([]internal.Point, error) {
+func (s *Storage) GetInRadiusPolygon(ctx context.Context, p internal.Polygon, radius int) ([]internal.Polygon, error) {
+
+	centralPoint, newRadius := genpoint.GetCentralPolygonPointWithRadius(p.Vertical, radius)
+
+	q := `
+		SELECT ST_AsText(geom)
+		FROM moscow_region_polygon
+		WHERE ST_Within(
+		geom,
+		ST_Buffer(ST_SetSRID(ST_Point($1, $2), 4326),
+		$3)
+	);
+	`
+
+	rows, err := s.db.Query(ctx, q, centralPoint.Longitude, centralPoint.Latitude, newRadius)
+	defer rows.Close()
+
+	if err != nil {
+		return nil, fmt.Errorf("can't get in radius %w\n", err)
+	}
+
+	return translateRowsPolygon(rows)
+}
+
+func (s *Storage) GetInPolygonPolygon(ctx context.Context, polygon []internal.Point) ([]internal.Polygon, error) {
+	polygonWKT := translatePolygonToWKT(polygon)
+
+	q := `
+		SELECT ST_AsText(geom)
+		FROM moscow_region_polygon
+		WHERE ST_Within(
+		    ST_SetSRID(ST_GeomFromText($1), 4326),
+		    geom
+		);
+	`
+
+	rows, err := s.db.Query(ctx, q, polygonWKT)
+	defer rows.Close()
+
+	if err != nil {
+		return nil, fmt.Errorf("can't querry points in polygon %w\n", err)
+	}
+
+	return translateRowsPolygon(rows)
+}
+
+func (s *Storage) GetIntersectionPolygon(ctx context.Context, polygon []internal.Point) ([]internal.Polygon, error) {
+	//TODO implement me
+	panic("implement me")
+}
+
+func (s *Storage) GetIntersectionPoint(ctx context.Context, point internal.Point) ([]internal.Polygon, error) {
+	//TODO implement me
+	panic("implement me")
+}
+
+func translateRowsPolygon(rows pgx.Rows) ([]internal.Polygon, error) {
+	nearestPolygons := make([]internal.Polygon, 0)
+
+	for rows.Next() {
+		var geometryData string
+		err := rows.Scan(&geometryData)
+		if err != nil {
+			return nil, fmt.Errorf("can't scan row in nearestPoint %w\n", err)
+		}
+
+		geometryData = strings.TrimLeft(geometryData, "POLYGON(")
+		geometryData = strings.TrimRight(geometryData, ")")
+		polygonPoints := strings.Split(geometryData, ",")
+
+		polygon := make([]internal.Point, len(polygonPoints))
+
+		for i, p := range polygonPoints {
+			polygon[i] = convertPointStrToFloat(strings.Split(p, " "))
+		}
+
+		nearestPolygons = append(nearestPolygons, internal.Polygon{Vertical: polygon})
+
+	}
+
+	return nearestPolygons, nil
+}
+
+func translateRowsPoint(rows pgx.Rows) ([]internal.Point, error) {
 
 	nearestPoints := make([]internal.Point, 0)
 
@@ -77,21 +155,7 @@ func translateRows(rows pgx.Rows) ([]internal.Point, error) {
 		geometryData = strings.TrimRight(geometryData, ")")
 		coordinates := strings.Split(geometryData, " ")
 
-		if len(coordinates) != 2 {
-			log.Printf("too much argument\n")
-			continue
-		}
-
-		latitude, err1 := strconv.ParseFloat(coordinates[1], 64)
-		if err1 != nil {
-			continue
-		}
-		longitude, err1 := strconv.ParseFloat(coordinates[0], 64)
-		if err1 != nil {
-			continue
-		}
-
-		nearestPoints = append(nearestPoints, internal.Point{Latitude: latitude, Longitude: longitude})
+		nearestPoints = append(nearestPoints, convertPointStrToFloat(coordinates))
 	}
 
 	if err := rows.Err(); err != nil {
@@ -99,5 +163,24 @@ func translateRows(rows pgx.Rows) ([]internal.Point, error) {
 	}
 
 	return nearestPoints, nil
+}
 
+func convertPointStrToFloat(coordinates []string) internal.Point {
+	if len(coordinates) != 2 {
+		log.Printf("too much argument\n")
+		return internal.Point{}
+	}
+
+	latitude, err1 := strconv.ParseFloat(coordinates[1], 64)
+	if err1 != nil {
+		log.Printf("too much argument\n")
+		return internal.Point{}
+	}
+	longitude, err1 := strconv.ParseFloat(coordinates[0], 64)
+	if err1 != nil {
+		log.Printf("too much argument\n")
+		return internal.Point{}
+	}
+
+	return internal.Point{Latitude: latitude, Longitude: longitude}
 }

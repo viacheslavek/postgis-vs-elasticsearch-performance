@@ -54,7 +54,6 @@ func (s *Storage) Close(ctx context.Context) error {
 	return nil
 }
 
-// Перенести это в миграции
 // Можно проверить работоспособность с индексами по точкам и без
 // CREATE INDEX moscow_region_geom_idx ON moscow_region USING GIST (geom);
 
@@ -62,7 +61,7 @@ func (s *Storage) Init(ctx context.Context) error {
 	q := `
 		CREATE EXTENSION IF NOT EXISTS postgis;
 		CREATE TABLE IF NOT EXISTS moscow_region (
-    		id SERIAL PRIMARY KEY ,
+    		id SERIAL PRIMARY KEY,
     		geom GEOMETRY(Point, 4326)
 		);
 	`

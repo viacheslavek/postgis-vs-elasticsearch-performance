@@ -2,7 +2,6 @@ package app
 
 import (
 	"context"
-	"fmt"
 	"github.com/VyacheslavIsWorkingNow/postgis-vs-elasticsearch-performance/internal/benchmark"
 	"github.com/VyacheslavIsWorkingNow/postgis-vs-elasticsearch-performance/internal/genpoint"
 	"github.com/VyacheslavIsWorkingNow/postgis-vs-elasticsearch-performance/internal/storage/elasticsearch"
@@ -26,19 +25,17 @@ func Run(pg *postgis.Storage, es *elasticsearch.Storage) {
 
 	polygonGen := genpoint.PolygonGenerator{}
 
-	polygons := polygonGen.GeneratePolygons(1e4)
+	polygons := polygonGen.GeneratePolygons(2e4)
 
-	err := es.AddPolygonBatch(ctx, polygons)
+	err := pg.InitPolygon(ctx)
 	if err != nil {
-		log.Fatalf("opps %e", err)
+		log.Fatalf("can't init postgis polygon %e\n", err)
 	}
 
-	polygon, err := es.GetInRadiusPolygon(ctx, polygons[0], 10000)
+	err = pg.AddPolygonBatch(ctx, polygons)
 	if err != nil {
-		return
+		log.Fatalf("can't add postgis polygon %e\n", err)
 	}
-
-	fmt.Println(polygon)
 
 	log.Printf("end\n")
 
