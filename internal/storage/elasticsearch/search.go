@@ -145,13 +145,65 @@ func (s *Storage) GetInPolygonPolygon(ctx context.Context, polygon []internal.Po
 }
 
 func (s *Storage) GetIntersectionPolygon(ctx context.Context, polygon []internal.Point) ([]internal.Polygon, error) {
-	//TODO implement me
-	panic("implement me")
+	qJSON := fmt.Sprintf(`
+	{
+		"query": {
+			"bool": {
+				"filter": {
+					"geo_shape": {
+						"polygon": {
+							"relation": "intersects",
+							"shape": {
+								"type": "polygon",
+								"coordinates": [
+									[%s]
+								]
+							}
+						}
+					}
+				}
+			}
+		},
+		"size": "10000"
+	}`, generateESPolygon(polygon))
+
+	resp, err := s.doSearchRequestWithQuery(ctx, qJSON, "moscow_region_polygon")
+
+	if err != nil {
+		return nil, fmt.Errorf("can't doSearchPointRequestWithQuery InPolygonPolygon %w\n", err)
+	}
+
+	return getInternalPolygonsFromStructString(*resp), nil
 }
 
 func (s *Storage) GetIntersectionPoint(ctx context.Context, point internal.Point) ([]internal.Polygon, error) {
-	//TODO implement me
-	panic("implement me")
+	qJSON := fmt.Sprintf(`
+	{
+		"query": {
+			"bool": {
+				"filter": {
+					"geo_shape": {
+						"polygon": {
+							"relation": "contains",
+							"shape": {
+								"type": "point",
+								"coordinates": [%f, %f]
+							}
+						}
+					}
+				}
+			}
+		},
+		"size": "10000"
+	}`, point.Latitude, point.Longitude)
+
+	resp, err := s.doSearchRequestWithQuery(ctx, qJSON, "moscow_region_polygon")
+
+	if err != nil {
+		return nil, fmt.Errorf("can't doSearchPointRequestWithQuery InPolygonPolygon %w\n", err)
+	}
+
+	return getInternalPolygonsFromStructString(*resp), nil
 }
 
 func (s *Storage) doSearchRequestWithQuery(ctx context.Context, qJSON, index string) (*Response, error) {

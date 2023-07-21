@@ -28,37 +28,12 @@ func Run(pg *postgis.Storage, es *elasticsearch.Storage) {
 
 	polygons := polygonGen.GeneratePolygons(2e4)
 
-	err := pg.DropPolygon(ctx)
+	polygon, err := es.GetIntersectionPoint(ctx, polygons[0].Vertical[0])
 	if err != nil {
-		log.Fatalf("can't init postgis polygon %e\n", err)
+		log.Fatalf("can't do es get %e\n", err)
 	}
 
-	err = pg.InitPolygon(ctx)
-	if err != nil {
-		log.Fatalf("can't init postgis polygon %e\n", err)
-	}
-
-	err = pg.AddPolygonBatch(ctx, polygons)
-	if err != nil {
-		log.Fatalf("can't add postgis polygon %e\n", err)
-	}
-
-	err = pg.AddPolygon(ctx, polygons[0])
-	if err != nil {
-		log.Fatalf("can't add postgis polygon %e\n", err)
-	}
-
-	fmt.Println("all add")
-
-	_, err = pg.GetInPolygonPolygon(ctx, polygons[0].Vertical)
-	if err != nil {
-		log.Fatalf("can't add postgis polygon %e\n", err)
-	}
-
-	_, err = pg.GetInRadiusPolygon(ctx, polygons[0], 10)
-	if err != nil {
-		log.Fatalf("can't add postgis polygon %e\n", err)
-	}
+	fmt.Println(len(polygon))
 
 	log.Printf("end\n")
 

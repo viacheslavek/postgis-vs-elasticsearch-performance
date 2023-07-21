@@ -104,13 +104,46 @@ func (s *Storage) GetInPolygonPolygon(ctx context.Context, polygon []internal.Po
 }
 
 func (s *Storage) GetIntersectionPolygon(ctx context.Context, polygon []internal.Point) ([]internal.Polygon, error) {
-	//TODO implement me
-	panic("implement me")
+	polygonWKT := translatePolygonToWKT(polygon)
+
+	q := `
+		SELECT ST_AsText(geom)
+		FROM moscow_region_polygon
+		WHERE ST_Intersects(
+		    ST_SetSRID(ST_GeomFromText($1), 4326),
+		    geom
+		);
+	`
+
+	rows, err := s.db.Query(ctx, q, polygonWKT)
+	defer rows.Close()
+
+	if err != nil {
+		return nil, fmt.Errorf("can't querry points in polygon %w\n", err)
+	}
+
+	return translateRowsPolygon(rows)
 }
 
 func (s *Storage) GetIntersectionPoint(ctx context.Context, point internal.Point) ([]internal.Polygon, error) {
-	//TODO implement me
-	panic("implement me")
+
+	q := `
+		SELECT ST_AsText(geom)
+		FROM moscow_region_polygon
+		WHERE ST_Contains(
+		geom,
+		(ST_SetSRID(ST_Point($1, $2), 4326))
+	);
+	`
+
+	rows, err := s.db.Query(ctx, q, point.Longitude, point.Latitude)
+	defer rows.Close()
+
+	if err != nil {
+		return nil, fmt.Errorf("can't querry points in polygon %w\n", err)
+	}
+
+	return translateRowsPolygon(rows)
 }
 
 func translateRowsPolygon(rows pgx.Rows) ([]internal.Polygon, error) {
