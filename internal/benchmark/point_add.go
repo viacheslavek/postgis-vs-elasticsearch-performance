@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 	"github.com/VyacheslavIsWorkingNow/postgis-vs-elasticsearch-performance/internal"
+	"github.com/VyacheslavIsWorkingNow/postgis-vs-elasticsearch-performance/internal/genpoint"
 	"github.com/VyacheslavIsWorkingNow/postgis-vs-elasticsearch-performance/internal/storage"
 	"log"
 	"time"
@@ -57,21 +58,27 @@ func benchAddPointBatch(ctx context.Context, s storage.Storage, ps []internal.Po
 	return endBench, nil
 }
 
-func runBenchDBInitAndAdd(ctx context.Context, s storage.Storage, db string, ps []internal.Point) error {
+func runPointBenchDBInitAndAdd(ctx context.Context, s storage.Storage, db string, countPoints int) error {
+
+	start := time.Now()
+	pointGen := genpoint.SimplePointGenerator{}
+
+	points := pointGen.GeneratePoints(countPoints)
+	log.Println("generate points: ", time.Since(start))
 
 	_, err := benchDropPoint(ctx, s)
 	if err != nil {
 		return err
 	}
 
-	log.Printf("testing db: %s\n", db)
+	log.Printf("testing point db: %s\n", db)
 	dur, err := benchInitPoint(ctx, s)
 	if err != nil {
 		return err
 	}
 	log.Printf("time to Init: %s", dur.String())
 
-	dur, err = benchAddPoint(ctx, s, ps)
+	dur, err = benchAddPoint(ctx, s, points)
 	if err != nil {
 		return err
 	}
@@ -83,17 +90,16 @@ func runBenchDBInitAndAdd(ctx context.Context, s storage.Storage, db string, ps 
 	}
 	log.Printf("time to Drop: %s", dur.String())
 
-	dur, err = benchInitPoint(ctx, s)
+	_, err = benchInitPoint(ctx, s)
 	if err != nil {
 		return err
 	}
-	log.Printf("time to Init: %s", dur.String())
 
-	dur, err = benchAddPointBatch(ctx, s, ps)
+	dur, err = benchAddPointBatch(ctx, s, points)
 	if err != nil {
 		return err
 	}
-	log.Printf("time to Add : %s", dur.String())
+	log.Printf("time to Add batch: %s", dur.String())
 
 	return nil
 }

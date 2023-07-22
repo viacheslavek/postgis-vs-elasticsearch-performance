@@ -14,23 +14,22 @@ func Run(pg *postgis.Storage, es *elasticsearch.Storage) {
 
 	ctx := context.Background()
 
-	if err := benchmark.RunBench(ctx, pg, "postgis", 20e1, 5, 1e4, 10); err != nil {
-		log.Fatalf("can't do postgis bench %e\n", err)
+	if err := benchmark.RunBenchPoint(ctx, pg, "postgis", 20e1, 5, 10); err != nil {
+		log.Fatalf("can't do pg bench %e\n", err)
 	}
 
-	if err := benchmark.RunBench(ctx, es, "elasticseacrh", 20e1, 5, 1e4, 10); err != nil {
+	if err := benchmark.RunBenchPoint(ctx, es, "elasticseacrh", 20e1, 5, 10); err != nil {
 		log.Fatalf("can't do es bench %e\n", err)
+	}
+
+	if err := benchmark.RunBenchPolygon(ctx, pg, "postgis", 20e1); err != nil {
+		log.Fatalf("can't do pg polygon bench %e\n", err)
+	}
+
+	if err := benchmark.RunBenchPolygon(ctx, es, "elasticseacrh", 20e1); err != nil {
+		log.Fatalf("can't do es polygon bench %e\n", err)
 	}
 
 	log.Printf("end\n")
 
 }
-
-//curl -X GET "http://localhost:9200/moscow_region/_search" -H "Content-Type: application/json" -d'
-//{
-// "query": {
-//   "match_all": {}
-// },
-// "size": 100
-//}
-//'

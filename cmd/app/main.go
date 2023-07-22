@@ -7,8 +7,6 @@ import (
 	"log"
 )
 
-// инициализация логгера и конфигов. Дальше передаю управление другому пакету
-
 func main() {
 
 	log.Printf("app starts launching\n")
