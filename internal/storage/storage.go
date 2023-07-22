@@ -14,6 +14,8 @@ type Storage interface {
 
 	GetInRadius(ctx context.Context, p internal.Point, radius int) ([]internal.Point, error)
 	GetInPolygon(ctx context.Context, polygon []internal.Point) ([]internal.Point, error)
+
+	GetInShapes(ctx context.Context, shapes internal.Shapes) ([]internal.Point, error)
 }
 
 type PolygonStorage interface {
@@ -24,8 +26,8 @@ type PolygonStorage interface {
 	AddPolygonBatch(ctx context.Context, polygons []internal.Polygon) error
 
 	GetInRadiusPolygon(ctx context.Context, p internal.Polygon, radius int) ([]internal.Polygon, error)
-	GetInPolygonPolygon(ctx context.Context, polygon []internal.Point) ([]internal.Polygon, error)
+	GetInPolygonPolygon(ctx context.Context, polygon internal.Polygon) ([]internal.Polygon, error)
 
-	GetIntersectionPolygon(ctx context.Context, polygon []internal.Point) ([]internal.Polygon, error)
+	GetIntersectionPolygon(ctx context.Context, polygon internal.Polygon) ([]internal.Polygon, error)
 	GetIntersectionPoint(ctx context.Context, point internal.Point) ([]internal.Polygon, error)
 }

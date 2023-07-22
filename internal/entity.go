@@ -8,3 +8,13 @@ type Point struct {
 type Polygon struct {
 	Vertical []Point
 }
+
+type Circle struct {
+	Centre Point
+	Radius int
+}
+
+type Shapes struct {
+	Polygons []Polygon
+	Circles  []Circle
+}

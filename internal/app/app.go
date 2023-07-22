@@ -24,16 +24,21 @@ func Run(pg *postgis.Storage, es *elasticsearch.Storage) {
 		log.Fatalf("can't do es bench %e\n", err)
 	}
 
-	polygonGen := genpoint.PolygonGenerator{}
-
-	polygons := polygonGen.GeneratePolygons(2e4)
-
-	polygon, err := es.GetIntersectionPoint(ctx, polygons[0].Vertical[0])
+	err := es.Init(ctx)
 	if err != nil {
-		log.Fatalf("can't do es get %e\n", err)
+		log.Fatalf("can't do init %e\n", err)
 	}
 
-	fmt.Println(len(polygon))
+	fmt.Println("start")
+
+	points, err := es.GetInShapes(ctx, genpoint.GenerateShapes(2))
+	if err != nil {
+		log.Fatalf("can't do shapes %e\n", err)
+	}
+
+	fmt.Println(len(points))
+
+	fmt.Println(points)
 
 	log.Printf("end\n")
 

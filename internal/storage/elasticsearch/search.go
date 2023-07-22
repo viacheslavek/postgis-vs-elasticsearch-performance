@@ -111,7 +111,7 @@ func (s *Storage) GetInRadiusPolygon(ctx context.Context, p internal.Polygon, ra
 
 }
 
-func (s *Storage) GetInPolygonPolygon(ctx context.Context, polygon []internal.Point) ([]internal.Polygon, error) {
+func (s *Storage) GetInPolygonPolygon(ctx context.Context, polygon internal.Polygon) ([]internal.Polygon, error) {
 
 	qJSON := fmt.Sprintf(`
 	{
@@ -133,7 +133,7 @@ func (s *Storage) GetInPolygonPolygon(ctx context.Context, polygon []internal.Po
 			}
 		},
 		"size": "1000"
-	}`, generateESPolygon(polygon))
+	}`, generateESPolygon(polygon.Vertical))
 
 	resp, err := s.doSearchRequestWithQuery(ctx, qJSON, "moscow_region_polygon")
 
@@ -144,7 +144,7 @@ func (s *Storage) GetInPolygonPolygon(ctx context.Context, polygon []internal.Po
 	return getInternalPolygonsFromStructString(*resp), nil
 }
 
-func (s *Storage) GetIntersectionPolygon(ctx context.Context, polygon []internal.Point) ([]internal.Polygon, error) {
+func (s *Storage) GetIntersectionPolygon(ctx context.Context, polygon internal.Polygon) ([]internal.Polygon, error) {
 	qJSON := fmt.Sprintf(`
 	{
 		"query": {
@@ -165,7 +165,7 @@ func (s *Storage) GetIntersectionPolygon(ctx context.Context, polygon []internal
 			}
 		},
 		"size": "10000"
-	}`, generateESPolygon(polygon))
+	}`, generateESPolygon(polygon.Vertical))
 
 	resp, err := s.doSearchRequestWithQuery(ctx, qJSON, "moscow_region_polygon")
 
@@ -206,6 +206,39 @@ func (s *Storage) GetIntersectionPoint(ctx context.Context, point internal.Point
 	return getInternalPolygonsFromStructString(*resp), nil
 }
 
+func (s *Storage) GetInShapes(ctx context.Context, shape internal.Shapes) ([]internal.Point, error) {
+
+	qJSON := fmt.Sprintf(`
+	{
+		"query": {
+			"bool": {
+				"filter": {
+					"geo_shape": {
+						"point": {
+							"relation": "intersects",
+							"shape": {
+								"type": "geometrycollection",
+								"geometries": [
+									%s
+								]
+							}
+						}
+					}
+				}
+			}
+		},
+		"size": "10000"
+	}`, convertShapeToEsStr(shape))
+
+	resp, err := s.doSearchRequestWithQuery(ctx, qJSON, "moscow_region")
+
+	if err != nil {
+		return nil, fmt.Errorf("can't doSearchPointRequestWithQuery InPolygon %w\n", err)
+	}
+
+	return getInternalPointsFromStructString(*resp), nil
+}
+
 func (s *Storage) doSearchRequestWithQuery(ctx context.Context, qJSON, index string) (*Response, error) {
 	res, err := s.client.Search(
 		s.client.Search.WithContext(ctx),
@@ -240,6 +273,42 @@ func (s *Storage) doSearchRequestWithQuery(ctx context.Context, qJSON, index str
 	}
 
 	return &response, nil
+}
+
+func convertShapeToEsStr(shapes internal.Shapes) string {
+
+	lenPolygon := len(shapes.Polygons)
+	lenCircle := len(shapes.Circles)
+
+	queries := make([]string, lenPolygon+lenCircle)
+
+	for i := 0; i < lenPolygon; i++ {
+		queries[i] = convertPolygonToES(shapes.Polygons[i])
+	}
+
+	for i := 0; i < lenCircle; i++ {
+		queries[i+lenPolygon] = convertCircleToES(shapes.Circles[i])
+	}
+
+	return strings.Join(queries, ", ")
+}
+
+func convertPolygonToES(polygon internal.Polygon) string {
+
+	return fmt.Sprintf(`
+		{
+			"type": "polygon",
+			"coordinates": [[%s]]
+		}`, generateESPolygon(polygon.Vertical))
+}
+
+func convertCircleToES(circle internal.Circle) string {
+	return fmt.Sprintf(`
+		{
+			"type": "circle",
+			"coordinates": [%f, %f],
+	 		"radius": "%dm"
+		}`, circle.Centre.Longitude, circle.Centre.Latitude, circle.Radius)
 }
 
 func getInternalPolygonsFromStructString(response Response) []internal.Polygon {
