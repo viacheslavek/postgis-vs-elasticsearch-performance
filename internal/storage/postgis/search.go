@@ -47,10 +47,6 @@ func (s *Storage) GetInPolygon(ctx context.Context, polygon []internal.Point) ([
 		);
 	`
 
-	fmt.Println(q)
-
-	fmt.Println(polygonWKT)
-
 	rows, err := s.db.Query(ctx, q, polygonWKT)
 	defer rows.Close()
 
@@ -158,8 +154,6 @@ func (s *Storage) GetInShapes(ctx context.Context, shapes internal.Shapes) ([]in
 
 	rows, err := s.db.Query(ctx, q)
 	defer rows.Close()
-
-	fmt.Println("querrrr", q)
 
 	if err != nil {
 		return nil, fmt.Errorf("can't querry points in polygon %w\n", err)

@@ -4,14 +4,13 @@ import (
 	"context"
 	"fmt"
 	"github.com/VyacheslavIsWorkingNow/postgis-vs-elasticsearch-performance/internal"
+	"github.com/VyacheslavIsWorkingNow/postgis-vs-elasticsearch-performance/internal/genpoint"
 	"github.com/VyacheslavIsWorkingNow/postgis-vs-elasticsearch-performance/internal/storage"
 	"log"
 	"time"
 )
 
-// TODO: писать не в логи, а генерировать файл
-
-func benchInit(ctx context.Context, s storage.Storage) (time.Duration, error) {
+func benchInitPoint(ctx context.Context, s storage.Storage) (time.Duration, error) {
 	start := time.Now()
 
 	if err := s.Init(ctx); err != nil {
@@ -21,7 +20,7 @@ func benchInit(ctx context.Context, s storage.Storage) (time.Duration, error) {
 	return time.Since(start), nil
 }
 
-func benchDrop(ctx context.Context, s storage.Storage) (time.Duration, error) {
+func benchDropPoint(ctx context.Context, s storage.Storage) (time.Duration, error) {
 	start := time.Now()
 
 	if err := s.Drop(ctx); err != nil {
@@ -59,43 +58,48 @@ func benchAddPointBatch(ctx context.Context, s storage.Storage, ps []internal.Po
 	return endBench, nil
 }
 
-func runBenchDBInitAndAdd(ctx context.Context, s storage.Storage, db string, ps []internal.Point) error {
+func runPointBenchDBInitAndAdd(ctx context.Context, s storage.Storage, db string, countPoints int) error {
 
-	_, err := benchDrop(ctx, s)
+	start := time.Now()
+	pointGen := genpoint.SimplePointGenerator{}
+
+	points := pointGen.GeneratePoints(countPoints)
+	log.Println("generate points: ", time.Since(start))
+
+	_, err := benchDropPoint(ctx, s)
 	if err != nil {
 		return err
 	}
 
-	log.Printf("testing db: %s\n", db)
-	dur, err := benchInit(ctx, s)
+	log.Printf("testing point db: %s\n", db)
+	dur, err := benchInitPoint(ctx, s)
 	if err != nil {
 		return err
 	}
 	log.Printf("time to Init: %s", dur.String())
 
-	dur, err = benchAddPoint(ctx, s, ps)
+	dur, err = benchAddPoint(ctx, s, points)
 	if err != nil {
 		return err
 	}
 	log.Printf("time to Add: %s", dur.String())
 
-	dur, err = benchDrop(ctx, s)
+	dur, err = benchDropPoint(ctx, s)
 	if err != nil {
 		return err
 	}
 	log.Printf("time to Drop: %s", dur.String())
 
-	dur, err = benchInit(ctx, s)
+	_, err = benchInitPoint(ctx, s)
 	if err != nil {
 		return err
 	}
-	log.Printf("time to Init: %s", dur.String())
 
-	dur, err = benchAddPointBatch(ctx, s, ps)
+	dur, err = benchAddPointBatch(ctx, s, points)
 	if err != nil {
 		return err
 	}
-	log.Printf("time to Add : %s", dur.String())
+	log.Printf("time to Add batch: %s", dur.String())
 
 	return nil
 }

@@ -7,6 +7,7 @@ import (
 	"github.com/VyacheslavIsWorkingNow/postgis-vs-elasticsearch-performance/internal/genpoint"
 	"github.com/VyacheslavIsWorkingNow/postgis-vs-elasticsearch-performance/internal/storage"
 	"log"
+	"math/rand"
 	"time"
 )
 
@@ -20,8 +21,6 @@ func benchSearchInRadius(ctx context.Context, s storage.Storage, p internal.Poin
 	}
 
 	endBench := time.Since(start)
-
-	// Спросить, что делать с точками
 
 	return endBench, nil
 }
@@ -53,17 +52,38 @@ func getInPolygon(ctx context.Context, s storage.Storage, polygon []internal.Poi
 
 	endBench := time.Since(start)
 
-	// Спросить, что делать с точками
+	return endBench, nil
+}
+
+func benchSearchInShapes(ctx context.Context, s storage.Storage, countShapes int) (time.Duration, error) {
+
+	shapes := genpoint.GenerateShapes(countShapes)
+
+	start := time.Now()
+
+	_, err := s.GetInShapes(ctx, shapes)
+
+	if err != nil {
+		return 0, fmt.Errorf("can't search radius in bench db %w\n", err)
+	}
+
+	endBench := time.Since(start)
 
 	return endBench, nil
 }
 
-func runBenchSearch(ctx context.Context, s storage.Storage, db string,
-	p internal.Point, radius, countPolygon int) error {
+func runBenchPointSearch(ctx context.Context, s storage.Storage, db string,
+	countPolygon, countShapes int) error {
 
-	log.Printf("testing db: %s\n", db)
+	log.Printf("testing point search db: %s\n", db)
 
-	dur, err := benchSearchInRadius(ctx, s, p, radius)
+	spg := genpoint.SimplePointGenerator{}
+
+	point := spg.GeneratePoints(1)[0]
+
+	radius := rand.Intn(1e5)
+
+	dur, err := benchSearchInRadius(ctx, s, point, radius)
 	if err != nil {
 		return err
 	}
@@ -78,6 +98,12 @@ func runBenchSearch(ctx context.Context, s storage.Storage, db string,
 	for i, d := range durs {
 		log.Println("count:", i, "-", d)
 	}
+
+	dur, err = benchSearchInShapes(ctx, s, countShapes)
+	if err != nil {
+		return err
+	}
+	log.Printf("time to search in radius: %s", dur.String())
 
 	return nil
 }
