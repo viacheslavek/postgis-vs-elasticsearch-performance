@@ -73,7 +73,7 @@ func runBenchSearch(ctx context.Context, s storage.Storage, db string,
 	if err != nil {
 		return err
 	}
-	log.Printf("time to search in radius: %s", dur.String())
+	log.Printf("time to search in polygon: %s", dur.String())
 
 	for i, d := range durs {
 		log.Println("count:", i, "-", d)

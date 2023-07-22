@@ -60,6 +60,12 @@ func benchAddPointBatch(ctx context.Context, s storage.Storage, ps []internal.Po
 }
 
 func runBenchDBInitAndAdd(ctx context.Context, s storage.Storage, db string, ps []internal.Point) error {
+
+	_, err := benchDrop(ctx, s)
+	if err != nil {
+		return err
+	}
+
 	log.Printf("testing db: %s\n", db)
 	dur, err := benchInit(ctx, s)
 	if err != nil {
