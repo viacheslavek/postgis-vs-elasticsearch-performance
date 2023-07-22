@@ -54,7 +54,6 @@ func (s *Storage) Close(ctx context.Context) error {
 	return nil
 }
 
-// Можно проверить работоспособность с индексами по точкам и без
 // CREATE INDEX moscow_region_geom_idx ON moscow_region USING GIST (geom);
 
 func (s *Storage) Init(ctx context.Context) error {

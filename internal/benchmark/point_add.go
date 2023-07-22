@@ -60,31 +60,15 @@ func benchAddPointBatch(ctx context.Context, s storage.Storage, ps []internal.Po
 
 func runPointBenchDBInitAndAdd(ctx context.Context, s storage.Storage, db string, countPoints int) error {
 
+	log.Printf("testing point db: %s\n", db)
+
 	start := time.Now()
 	pointGen := genpoint.SimplePointGenerator{}
 
 	points := pointGen.GeneratePoints(countPoints)
 	log.Println("generate points: ", time.Since(start))
 
-	_, err := benchDropPoint(ctx, s)
-	if err != nil {
-		return err
-	}
-
-	log.Printf("testing point db: %s\n", db)
-	dur, err := benchInitPoint(ctx, s)
-	if err != nil {
-		return err
-	}
-	log.Printf("time to Init: %s", dur.String())
-
-	dur, err = benchAddPoint(ctx, s, points)
-	if err != nil {
-		return err
-	}
-	log.Printf("time to Add: %s", dur.String())
-
-	dur, err = benchDropPoint(ctx, s)
+	dur, err := benchDropPoint(ctx, s)
 	if err != nil {
 		return err
 	}
