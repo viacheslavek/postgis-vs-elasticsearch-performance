@@ -9,8 +9,11 @@ import (
 	"time"
 )
 
+// TODO: перенести генерацию точек и внутренних вещей в самые нижние функции, чтобы не было зависимостей на всех уровнях
+// А так же радиус перенести из главной функции в низ
+
 func RunBench(ctx context.Context, s storage.Storage, db string,
-	countPoints, countPolygon, radius int) error {
+	countPoints, countPolygon, radius, countShapes int) error {
 	fmt.Println("go to the logs")
 
 	start := time.Now()
@@ -24,7 +27,7 @@ func RunBench(ctx context.Context, s storage.Storage, db string,
 
 	point := pointG.GeneratePoints(1)
 
-	if err := runBenchSearch(ctx, s, db, point[0], radius, countPolygon); err != nil {
+	if err := runBenchSearch(ctx, s, db, point[0], radius, countPolygon, countShapes); err != nil {
 		return fmt.Errorf("can't run search banch: %w\n", err)
 	}
 

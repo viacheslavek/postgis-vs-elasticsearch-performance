@@ -9,9 +9,7 @@ import (
 	"time"
 )
 
-// TODO: писать не в логи, а генерировать файл
-
-func benchInit(ctx context.Context, s storage.Storage) (time.Duration, error) {
+func benchInitPoint(ctx context.Context, s storage.Storage) (time.Duration, error) {
 	start := time.Now()
 
 	if err := s.Init(ctx); err != nil {
@@ -21,7 +19,7 @@ func benchInit(ctx context.Context, s storage.Storage) (time.Duration, error) {
 	return time.Since(start), nil
 }
 
-func benchDrop(ctx context.Context, s storage.Storage) (time.Duration, error) {
+func benchDropPoint(ctx context.Context, s storage.Storage) (time.Duration, error) {
 	start := time.Now()
 
 	if err := s.Drop(ctx); err != nil {
@@ -61,13 +59,13 @@ func benchAddPointBatch(ctx context.Context, s storage.Storage, ps []internal.Po
 
 func runBenchDBInitAndAdd(ctx context.Context, s storage.Storage, db string, ps []internal.Point) error {
 
-	_, err := benchDrop(ctx, s)
+	_, err := benchDropPoint(ctx, s)
 	if err != nil {
 		return err
 	}
 
 	log.Printf("testing db: %s\n", db)
-	dur, err := benchInit(ctx, s)
+	dur, err := benchInitPoint(ctx, s)
 	if err != nil {
 		return err
 	}
@@ -79,13 +77,13 @@ func runBenchDBInitAndAdd(ctx context.Context, s storage.Storage, db string, ps 
 	}
 	log.Printf("time to Add: %s", dur.String())
 
-	dur, err = benchDrop(ctx, s)
+	dur, err = benchDropPoint(ctx, s)
 	if err != nil {
 		return err
 	}
 	log.Printf("time to Drop: %s", dur.String())
 
-	dur, err = benchInit(ctx, s)
+	dur, err = benchInitPoint(ctx, s)
 	if err != nil {
 		return err
 	}
