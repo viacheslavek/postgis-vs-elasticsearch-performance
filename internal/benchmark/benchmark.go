@@ -5,31 +5,36 @@ import (
 	"fmt"
 	"github.com/VyacheslavIsWorkingNow/postgis-vs-elasticsearch-performance/internal/genpoint"
 	"github.com/VyacheslavIsWorkingNow/postgis-vs-elasticsearch-performance/internal/storage"
+	"html/template"
 	"log"
+	"os"
+	"path/filepath"
 	"time"
 )
 
 type BenchFile struct {
-	Durations              map[int]time.Duration
+	Durations              map[string]time.Duration
 	DurationPointInPolygon []time.Duration
-	dbName                 string
-	countPoints            int
-	countPolygon           int
-	countShapes            int
-	countChecks            int
+	DbName                 string
+	CountPoints            int
+	CountPolygonAdd        int
+	CountPolygonSearch     int
+	CountShapes            int
+	CountChecks            int
 }
 
 func RunBenchNCheck(ctx context.Context, ss storage.Storage, sp storage.PolygonStorage, db string,
-	countPoints, countPolygon, countShapes, countChecks int) (BenchFile, error) {
+	countPoints, countPolygonAdd, countPolygonSearch, countShapes, countChecks int) (BenchFile, error) {
 
 	bf := BenchFile{
-		Durations:              make(map[int]time.Duration),
-		DurationPointInPolygon: make([]time.Duration, countPolygon),
-		dbName:                 db,
-		countPoints:            countPoints,
-		countPolygon:           countPolygon,
-		countShapes:            countShapes,
-		countChecks:            countChecks,
+		Durations:              make(map[string]time.Duration),
+		DurationPointInPolygon: make([]time.Duration, countPolygonSearch),
+		DbName:                 db,
+		CountPoints:            countPoints,
+		CountPolygonAdd:        countPolygonAdd,
+		CountPolygonSearch:     countPolygonSearch,
+		CountShapes:            countShapes,
+		CountChecks:            countChecks,
 	}
 
 	for i := 0; i < countChecks; i++ {
@@ -67,6 +72,39 @@ func RunBenchPolygon(ctx context.Context, s storage.PolygonStorage, bf *BenchFil
 
 	if err := runBenchPolygonSearch(ctx, s, bf); err != nil {
 		return fmt.Errorf("can't run init and add polygon banch: %w\n", err)
+	}
+
+	return nil
+}
+
+func (bf *BenchFile) ConvertToHTML(path string) error {
+
+	wd, err := os.Getwd()
+	if err != nil {
+		return fmt.Errorf("can't get wd %w", err)
+	}
+
+	htmlPath := filepath.Join(wd, "internal", "benchmark", "benchmark.html")
+
+	tmpl, err := template.ParseFiles(htmlPath)
+	if err != nil {
+		return fmt.Errorf("can't parse benchmark.html in convert %w", err)
+	}
+
+	newFilePath := filepath.Join(wd, path)
+	file, err := os.Create(newFilePath)
+	if err != nil {
+		return fmt.Errorf("can't create file in convert %w", err)
+	}
+	defer func(file *os.File) {
+		err = file.Close()
+		if err != nil {
+			log.Printf("can't close file in convert %e\n", err)
+		}
+	}(file)
+
+	if err = tmpl.Execute(file, bf); err != nil {
+		return fmt.Errorf("can't execute file in convert %w", err)
 	}
 
 	return nil

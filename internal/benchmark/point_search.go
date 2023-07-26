@@ -29,7 +29,7 @@ func benchSearchInPolygon(ctx context.Context, s storage.Storage, countPolygon i
 	durations := make([]time.Duration, 0)
 	genPolygon := genpoint.PolygonGenerator{}
 
-	for i := 3; i < countPolygon; i++ {
+	for i := 3; i < countPolygon+3; i++ {
 		polygon := genPolygon.GeneratePolygon(i)
 		dur, err := getInPolygon(ctx, s, polygon)
 		if err != nil {
@@ -38,7 +38,7 @@ func benchSearchInPolygon(ctx context.Context, s storage.Storage, countPolygon i
 		durations = append(durations, dur)
 	}
 
-	return durations[3:], nil
+	return durations, nil
 }
 
 func getInPolygon(ctx context.Context, s storage.Storage, polygon []internal.Point) (time.Duration, error) {
@@ -85,13 +85,13 @@ func runBenchPointSearch(ctx context.Context, s storage.Storage, bf *BenchFile) 
 	}
 	bf.Durations[PointSearchInRadius] += dur
 
-	durs, err := benchSearchInPolygon(ctx, s, bf.countPolygon)
+	durs, err := benchSearchInPolygon(ctx, s, bf.CountPolygonSearch)
 	if err != nil {
 		return err
 	}
 	bf.DurationPointInPolygon = durs
 
-	dur, err = benchSearchInShapes(ctx, s, bf.countShapes)
+	dur, err = benchSearchInShapes(ctx, s, bf.CountShapes)
 	if err != nil {
 		return err
 	}

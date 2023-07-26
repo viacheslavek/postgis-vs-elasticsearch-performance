@@ -60,7 +60,7 @@ func benchAddPolygonBatch(ctx context.Context, s storage.PolygonStorage, polygon
 func runPolygonBenchDBInitAndAdd(ctx context.Context, s storage.PolygonStorage, bf *BenchFile) error {
 
 	polyGen := genpoint.PolygonGenerator{}
-	polygons := polyGen.GeneratePolygons(bf.countPolygon)
+	polygons := polyGen.GeneratePolygons(bf.CountPolygonAdd)
 
 	_, err := benchDropPolygon(ctx, s)
 	if err != nil {

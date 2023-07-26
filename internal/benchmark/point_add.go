@@ -61,7 +61,7 @@ func runPointBenchDBInitAndAdd(ctx context.Context, s storage.Storage, bf *Bench
 
 	pointGen := genpoint.SimplePointGenerator{}
 
-	points := pointGen.GeneratePoints(bf.countPoints)
+	points := pointGen.GeneratePoints(bf.CountPoints)
 
 	dur, err := benchDropPoint(ctx, s)
 	if err != nil {
