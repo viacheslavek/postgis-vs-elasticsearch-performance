@@ -20,7 +20,8 @@ func (s *Storage) GetInRadius(ctx context.Context, p internal.Point, radius int)
 		geom,
 		ST_SetSRID(ST_Point($1, $2), 4326),
 		$3
-	);
+	)
+		LIMIT 10000;
 	`
 
 	rows, err := s.db.Query(ctx, q, p.Longitude, p.Latitude, radius)
@@ -44,7 +45,8 @@ func (s *Storage) GetInPolygon(ctx context.Context, polygon []internal.Point) ([
 		WHERE ST_Within(
 		    geom, 
 		    ST_SetSRID(ST_GeomFromText($1), 4326)
-		);
+		)
+		LIMIT 10000;
 	`
 
 	rows, err := s.db.Query(ctx, q, polygonWKT)
@@ -68,7 +70,8 @@ func (s *Storage) GetInRadiusPolygon(ctx context.Context, p internal.Polygon, ra
 		geom,
 		ST_Buffer(ST_SetSRID(ST_Point($1, $2), 4326),
 		$3)
-	);
+		)
+		LIMIT 10000;
 	`
 
 	rows, err := s.db.Query(ctx, q, centralPoint.Longitude, centralPoint.Latitude, newRadius)
@@ -90,7 +93,8 @@ func (s *Storage) GetInPolygonPolygon(ctx context.Context, polygon internal.Poly
 		WHERE ST_Within(
 		    ST_SetSRID(ST_GeomFromText($1), 4326),
 		    geom
-		);
+		)
+		LIMIT 10000;
 	`
 
 	rows, err := s.db.Query(ctx, q, polygonWKT)
@@ -112,7 +116,8 @@ func (s *Storage) GetIntersectionPolygon(ctx context.Context, polygon internal.P
 		WHERE ST_Intersects(
 		    ST_SetSRID(ST_GeomFromText($1), 4326),
 		    geom
-		);
+		)
+		LIMIT 10000;
 	`
 
 	rows, err := s.db.Query(ctx, q, polygonWKT)
@@ -133,7 +138,8 @@ func (s *Storage) GetIntersectionPoint(ctx context.Context, point internal.Point
 		WHERE ST_Contains(
 		geom,
 		(ST_SetSRID(ST_Point($1, $2), 4326))
-	);
+	) 
+		LIMIT 10000;
 	`
 
 	rows, err := s.db.Query(ctx, q, point.Longitude, point.Latitude)
@@ -150,7 +156,7 @@ func (s *Storage) GetInShapes(ctx context.Context, shapes internal.Shapes) ([]in
 
 	// Так делать плохо при тех данных, которые вводит пользователь, так как возможна sql инъекция
 	// Здесь же я сам задаю то, что хочу передать и можно опустить неправильное использование переменных
-	q := fmt.Sprintf("SELECT ST_AsText(geom) FROM moscow_region WHERE %s;", getStrShapesSQL(shapes))
+	q := fmt.Sprintf("SELECT ST_AsText(geom) FROM moscow_region WHERE %s LIMIT 10000;", getStrShapesSQL(shapes))
 
 	rows, err := s.db.Query(ctx, q)
 	defer rows.Close()

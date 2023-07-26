@@ -6,7 +6,6 @@ import (
 	"github.com/VyacheslavIsWorkingNow/postgis-vs-elasticsearch-performance/internal"
 	"github.com/VyacheslavIsWorkingNow/postgis-vs-elasticsearch-performance/internal/genpoint"
 	"github.com/VyacheslavIsWorkingNow/postgis-vs-elasticsearch-performance/internal/storage"
-	"log"
 	"time"
 )
 
@@ -58,35 +57,27 @@ func benchAddPolygonBatch(ctx context.Context, s storage.PolygonStorage, polygon
 	return endBench, nil
 }
 
-func runPolygonBenchDBInitAndAdd(ctx context.Context, s storage.PolygonStorage, db string, countPolygons int) error {
+func runPolygonBenchDBInitAndAdd(ctx context.Context, s storage.PolygonStorage, bf *BenchFile) error {
 
 	polyGen := genpoint.PolygonGenerator{}
-	polygons := polyGen.GeneratePolygons(countPolygons)
+	polygons := polyGen.GeneratePolygons(bf.countPolygon)
 
 	_, err := benchDropPolygon(ctx, s)
 	if err != nil {
 		return err
 	}
 
-	log.Printf("testing polygon db: %s\n", db)
-
 	dur, err := benchInitPolygon(ctx, s)
 	if err != nil {
 		return err
 	}
-	log.Printf("time to Init: %s", dur.String())
-
-	dur, err = benchAddPolygon(ctx, s, polygons)
-	if err != nil {
-		return err
-	}
-	log.Printf("time to Add: %s", dur.String())
+	bf.Durations[PolygonInit] += dur
 
 	dur, err = benchDropPolygon(ctx, s)
 	if err != nil {
 		return err
 	}
-	log.Printf("time to Drop: %s", dur.String())
+	bf.Durations[PolygonDrop] += dur
 
 	_, err = benchInitPolygon(ctx, s)
 	if err != nil {
@@ -97,7 +88,7 @@ func runPolygonBenchDBInitAndAdd(ctx context.Context, s storage.PolygonStorage, 
 	if err != nil {
 		return err
 	}
-	log.Printf("time to Add batch: %s", dur.String())
+	bf.Durations[PolygonAddBatch] += dur
 
 	return nil
 }

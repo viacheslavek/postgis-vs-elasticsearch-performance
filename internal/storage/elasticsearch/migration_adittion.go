@@ -232,7 +232,6 @@ func (s *Storage) isExist(ctx context.Context, index string) (bool, error) {
 	}(indexExistsResponse.Body)
 
 	if !indexExistsResponse.IsError() {
-		fmt.Println("Index already exists")
 		return true, nil
 	}
 

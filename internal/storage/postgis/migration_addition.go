@@ -63,6 +63,7 @@ func (s *Storage) Init(ctx context.Context) error {
     		id SERIAL PRIMARY KEY,
     		geom GEOMETRY(Point, 4326)
 		);
+		CREATE INDEX moscow_region_geom_idx ON moscow_region USING GIST (geom);
 	`
 
 	return s.initBase(ctx, q)
