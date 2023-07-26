@@ -6,7 +6,6 @@ import (
 	"github.com/VyacheslavIsWorkingNow/postgis-vs-elasticsearch-performance/internal"
 	"github.com/VyacheslavIsWorkingNow/postgis-vs-elasticsearch-performance/internal/genpoint"
 	"github.com/VyacheslavIsWorkingNow/postgis-vs-elasticsearch-performance/internal/storage"
-	"log"
 	"math/rand"
 	"time"
 )
@@ -73,7 +72,7 @@ func benchGetIntersectionPoint(ctx context.Context, s storage.PolygonStorage,
 	return endBench, nil
 }
 
-func runBenchPolygonSearch(ctx context.Context, s storage.PolygonStorage, db string) error {
+func runBenchPolygonSearch(ctx context.Context, s storage.PolygonStorage, bf *BenchFile) error {
 
 	radius := rand.Intn(1e5)
 
@@ -81,25 +80,23 @@ func runBenchPolygonSearch(ctx context.Context, s storage.PolygonStorage, db str
 
 	polygon := internal.Polygon{Vertical: polyGen.GeneratePolygon(rand.Intn(20) + 3)}
 
-	log.Printf("testing polygon search db: %s\n", db)
-
 	dur, err := benchGetInRadiusPolygon(ctx, s, polygon, radius)
 	if err != nil {
 		return err
 	}
-	log.Printf("time to search in polygon radius: %s", dur.String())
+	bf.Durations[PolygonSearchInRadius] += dur
 
 	dur, err = benchGetInPolygonPolygon(ctx, s, polygon)
 	if err != nil {
 		return err
 	}
-	log.Printf("time to search in polygon polygon: %s", dur.String())
+	bf.Durations[PolygonSearchInPolygon] += dur
 
 	dur, err = benchGetIntersectionPolygon(ctx, s, polygon)
 	if err != nil {
 		return err
 	}
-	log.Printf("time to search intersection polygon: %s", dur.String())
+	bf.Durations[PolygonGetIntersection] += dur
 
 	spg := genpoint.SimplePointGenerator{}
 
@@ -109,7 +106,7 @@ func runBenchPolygonSearch(ctx context.Context, s storage.PolygonStorage, db str
 	if err != nil {
 		return err
 	}
-	log.Printf("time to search intersection point in polygon: %s", dur.String())
+	bf.Durations[PolygonGetIntersectionPoint] += dur
 
 	return nil
 }

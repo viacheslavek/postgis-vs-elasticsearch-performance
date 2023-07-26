@@ -8,6 +8,8 @@ import (
 	"strings"
 )
 
+// CREATE INDEX moscow_region_polygon_geom_idx ON moscow_region_polygon USING GIST (geom);
+
 func (s *Storage) InitPolygon(ctx context.Context) error {
 	q := `
 		CREATE EXTENSION IF NOT EXISTS postgis;
@@ -15,6 +17,7 @@ func (s *Storage) InitPolygon(ctx context.Context) error {
     		id SERIAL PRIMARY KEY,
     		geom GEOMETRY(Polygon, 4326)
 		);
+		CREATE INDEX moscow_region_polygon_geom_idx ON moscow_region_polygon USING GIST (geom);
 	`
 
 	return s.initBase(ctx, q)

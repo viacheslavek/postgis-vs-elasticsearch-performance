@@ -1,0 +1,39 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>BenchFile HTML</title>
+</head>
+<body>
+    <h1>BenchFile Details</h1>
+    <p>Database name: {{.DbName}}</p>
+    <p>Count points: {{.CountPoints}}</p>
+    <p>Count polygon add: {{.CountPolygonAdd}}</p>
+    <p>Count polygon search: {{.CountPolygonSearch}}</p>
+    <p>Count shapes: {{.CountShapes}}</p>
+    <p>Count checks: {{.CountChecks}}</p>
+
+    <h2>Durations</h2>
+
+    <table>
+        <tr>
+            <th>Event</th>
+            <th>Duration</th>
+        </tr>
+        {{range $key, $value := .Durations}}
+        <tr>
+            <td>{{$key}}</td>
+            <td>{{$value}}</td>
+        </tr>
+        {{end}}
+    </table>
+
+    <h2>Duration search points in polygon</h2>
+    <ul>
+        {{range $index, $duration := .DurationPointInPolygon}}
+        <li>Angels: {{$index}} -- Duration: {{$duration}}</li>
+        {{end}}
+    </ul>
+
+</body>
+</html>
