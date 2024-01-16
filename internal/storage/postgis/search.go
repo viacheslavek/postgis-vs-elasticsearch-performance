@@ -25,11 +25,12 @@ func (s *Storage) GetInRadius(ctx context.Context, p internal.Point, radius int)
 	`
 
 	rows, err := s.db.Query(ctx, q, p.Longitude, p.Latitude, radius)
-	defer rows.Close()
 
 	if err != nil {
 		return nil, fmt.Errorf("can't get in radius %w\n", err)
 	}
+
+	defer rows.Close()
 
 	return translateRowsPoint(rows)
 
@@ -50,11 +51,12 @@ func (s *Storage) GetInPolygon(ctx context.Context, polygon []internal.Point) ([
 	`
 
 	rows, err := s.db.Query(ctx, q, polygonWKT)
-	defer rows.Close()
 
 	if err != nil {
 		return nil, fmt.Errorf("can't querry points in polygon %w\n", err)
 	}
+
+	defer rows.Close()
 
 	return translateRowsPoint(rows)
 }
@@ -75,11 +77,12 @@ func (s *Storage) GetInRadiusPolygon(ctx context.Context, p internal.Polygon, ra
 	`
 
 	rows, err := s.db.Query(ctx, q, centralPoint.Longitude, centralPoint.Latitude, newRadius)
-	defer rows.Close()
 
 	if err != nil {
 		return nil, fmt.Errorf("can't get in radius %w\n", err)
 	}
+
+	defer rows.Close()
 
 	return translateRowsPolygon(rows)
 }
@@ -98,11 +101,12 @@ func (s *Storage) GetInPolygonPolygon(ctx context.Context, polygon internal.Poly
 	`
 
 	rows, err := s.db.Query(ctx, q, polygonWKT)
-	defer rows.Close()
 
 	if err != nil {
 		return nil, fmt.Errorf("can't querry points in polygon %w\n", err)
 	}
+
+	defer rows.Close()
 
 	return translateRowsPolygon(rows)
 }
@@ -121,11 +125,12 @@ func (s *Storage) GetIntersectionPolygon(ctx context.Context, polygon internal.P
 	`
 
 	rows, err := s.db.Query(ctx, q, polygonWKT)
-	defer rows.Close()
 
 	if err != nil {
 		return nil, fmt.Errorf("can't querry points in polygon %w\n", err)
 	}
+
+	defer rows.Close()
 
 	return translateRowsPolygon(rows)
 }
@@ -143,11 +148,12 @@ func (s *Storage) GetIntersectionPoint(ctx context.Context, point internal.Point
 	`
 
 	rows, err := s.db.Query(ctx, q, point.Longitude, point.Latitude)
-	defer rows.Close()
 
 	if err != nil {
 		return nil, fmt.Errorf("can't querry points in polygon %w\n", err)
 	}
+
+	defer rows.Close()
 
 	return translateRowsPolygon(rows)
 }
@@ -159,11 +165,12 @@ func (s *Storage) GetInShapes(ctx context.Context, shapes internal.Shapes) ([]in
 	q := fmt.Sprintf("SELECT ST_AsText(geom) FROM moscow_region WHERE %s LIMIT 10000;", getStrShapesSQL(shapes))
 
 	rows, err := s.db.Query(ctx, q)
-	defer rows.Close()
 
 	if err != nil {
 		return nil, fmt.Errorf("can't querry points in polygon %w\n", err)
 	}
+
+	defer rows.Close()
 
 	return translateRowsPoint(rows)
 }
@@ -206,8 +213,8 @@ func translateRowsPolygon(rows pgx.Rows) ([]internal.Polygon, error) {
 			return nil, fmt.Errorf("can't scan row in nearestPoint %w\n", err)
 		}
 
-		geometryData = strings.TrimLeft(geometryData, "POLYGON(")
-		geometryData = strings.TrimRight(geometryData, ")")
+		geometryData = strings.TrimPrefix(geometryData, "POLYGON(")
+		geometryData = strings.TrimSuffix(geometryData, ")")
 		polygonPoints := strings.Split(geometryData, ",")
 
 		polygon := make([]internal.Point, len(polygonPoints))

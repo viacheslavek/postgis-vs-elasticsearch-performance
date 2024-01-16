@@ -31,20 +31,6 @@ func benchDropPolygon(ctx context.Context, s storage.PolygonStorage) (time.Durat
 	return endBench, nil
 }
 
-func benchAddPolygon(ctx context.Context, s storage.PolygonStorage, polygons []internal.Polygon) (time.Duration, error) {
-	start := time.Now()
-
-	for _, p := range polygons {
-		if err := s.AddPolygon(ctx, p); err != nil {
-			return 0, fmt.Errorf("can't add single polygon bench db %w\n", err)
-		}
-	}
-
-	endBench := time.Since(start)
-
-	return endBench, nil
-}
-
 func benchAddPolygonBatch(ctx context.Context, s storage.PolygonStorage, polygons []internal.Polygon) (time.Duration, error) {
 	start := time.Now()
 

@@ -42,7 +42,7 @@ func (s *Storage) Ping() error {
 	defer func(Body io.ReadCloser) {
 		err = Body.Close()
 		if err != nil {
-
+			log.Printf("can't close the body %+v", err)
 		}
 	}(res.Body)
 

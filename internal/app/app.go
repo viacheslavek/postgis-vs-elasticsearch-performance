@@ -20,7 +20,7 @@ func Run(pg *postgis.Storage, es *elasticsearch.Storage) {
 
 	ctx := context.Background()
 
-	bfPg, err := benchmark.RunBenchNCheck(ctx, pg, pg, "postgis", 2e2, 200, 10, 15, 3)
+	bfPg, err := benchmark.RunBenchNCheck(ctx, pg, pg, "postgis", 2e5, 2e4, 15, 15, 10)
 
 	if err != nil {
 		log.Fatalf("can't do pg bench %e\n", err)
@@ -32,7 +32,7 @@ func Run(pg *postgis.Storage, es *elasticsearch.Storage) {
 		log.Fatalf("can't convert pg to html, %e", err)
 	}
 
-	bfEs, err := benchmark.RunBenchNCheck(ctx, es, es, "elasticsearch", 2e2, 200, 10, 15, 10)
+	bfEs, err := benchmark.RunBenchNCheck(ctx, es, es, "elasticsearch", 2e5, 2e4, 15, 15, 10)
 
 	if err != nil {
 		log.Fatalf("can't do es bench %e\n", err)

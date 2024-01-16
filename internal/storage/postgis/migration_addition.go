@@ -155,13 +155,13 @@ func (s *Storage) IsPointExist(ctx context.Context, p internal.Point) (bool, err
 
 	row, err := s.db.Query(ctx, q, p.Longitude, p.Latitude)
 
-	defer row.Close()
-
 	if err != nil {
 		return false, fmt.Errorf("can't delete a point %e\n", err)
 	}
 
-	if row.Next() != false {
+	defer row.Close()
+
+	if !row.Next() {
 		return true, nil
 	}
 

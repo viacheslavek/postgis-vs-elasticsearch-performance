@@ -44,13 +44,13 @@ func generatePointInRadius(centralX, centralY, radiusX, radiusY int) internal.Po
 	xRand := centralX
 	yRand := centralY
 
-	signX := rand.Intn(1)
+	signX := rand.Intn(2)
 	if signX == 0 {
 		xRand += newRadiusX
 	} else {
 		xRand -= newRadiusX
 	}
-	signY := rand.Intn(1)
+	signY := rand.Intn(2)
 	if signY == 0 {
 		yRand += newRadiusY
 	} else {

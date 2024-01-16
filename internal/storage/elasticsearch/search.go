@@ -132,7 +132,7 @@ func (s *Storage) GetInPolygonPolygon(ctx context.Context, polygon internal.Poly
 				}
 			}
 		},
-		"size": "1000"
+		"size": "10000"
 	}`, generateESPolygon(polygon.Vertical))
 
 	resp, err := s.doSearchRequestWithQuery(ctx, qJSON, "moscow_region_polygon")
